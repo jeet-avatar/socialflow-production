@@ -1,0 +1,109 @@
+# Claude memory
+.claude/
+
+# Backend utility/debug scripts
+backend/find_data.py
+backend/find_old_uid.py
+backend/migrate_user_id.py
+backend/test_fal_video.py
+backend/app/maintenance.py
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Large media files
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.wmv
+
+# Static folder with generated videos (keep the directory itself via .gitkeep)
+backend/app/static/*
+!backend/app/static/.gitkeep
+
+# Python virtual environments
+backend/venv/
+venv/
+.venv/
+
+# Frontend env (has secrets)
+frontend/.env
+frontend/.env.production
+backend/.env
+
+# Markdown files
+*.md
+
+# Temporary files
+temp.html
+*.tmp
+*.log
+logs/
+
+# Build outputs
+dist-ssr/
+build/
+coverage/
+*.local
+frontend/dist/
+
+# Vite dev cache
+.vite/
+frontend/.vite/
