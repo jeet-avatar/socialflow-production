@@ -32,6 +32,7 @@ from routes.videos_routes import router as videos_router
 from routes.subscription_routes import router as subscription_router
 from routes.user_routes import router as user_router
 from routes.channel_routes import router as channels_router
+from routes.model_config_routes import router as model_config_router
 from routes.chat_routes import router as chat_router
 
 # Import services for startup
@@ -82,6 +83,7 @@ app.include_router(videos_router)
 app.include_router(subscription_router)
 app.include_router(user_router)
 app.include_router(channels_router)
+app.include_router(model_config_router)
 app.include_router(chat_router)
 
 # Startup event
