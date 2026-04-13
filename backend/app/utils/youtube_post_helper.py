@@ -38,7 +38,7 @@ def _resolve_yt_credentials(user_id):
 
     logger.debug(f"🔍 DEBUG: user_id = {user_id}")
     integration = integrations_service.get_integration(user_id, "youtube", decrypt=True)
-    logger.debug(f"🔍 DEBUG: integration = {integration}")
+    logger.debug(f"🔍 DEBUG: integration found for user_id={user_id}: {bool(integration)}")
 
     if not integration or not integration.get('credentials'):
         logger.debug(f"⚠️  No YouTube integration found for user {user_id}")
@@ -62,9 +62,9 @@ def _build_yt_oauth_creds(credentials):
     client_secret = credentials.get('clientSecret')
 
     logger.debug("✅ Building YouTube OAuth credentials")
-    logger.debug(f"🔍 DEBUG: client_id = {client_id[:20] if client_id else 'None'}...")
-    logger.debug(f"🔍 DEBUG: client_secret = {client_secret[:20] if client_secret else 'None'}...")
-    logger.debug(f"🔍 DEBUG: refresh_token = {refresh_token[:20] if refresh_token else 'None (will authorize)'}...")
+    logger.debug("🔍 DEBUG: client_id is %s", "configured" if client_id else "missing")
+    logger.debug("🔍 DEBUG: client_secret is %s", "configured" if client_secret else "missing")
+    logger.debug("🔍 DEBUG: refresh_token is %s", "configured" if refresh_token else "missing")
 
     if not client_id or not client_secret:
         logger.debug("❌ YouTube client ID or secret missing")

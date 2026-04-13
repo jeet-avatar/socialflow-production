@@ -1,5 +1,6 @@
 import logging
 import traceback
+logger = logging.getLogger(__name__)
 from elevenlabs.client import ElevenLabs
 try:
     from moviepy import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, CompositeAudioClip, ImageClip, ColorClip, concatenate_videoclips
@@ -96,7 +97,6 @@ else:
 
 # Fix SSL certificate issues for whisper model downloads — use certifi bundle
 import certifi
-logger = logging.getLogger(__name__)
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context)))
 

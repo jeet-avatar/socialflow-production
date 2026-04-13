@@ -11,16 +11,15 @@ app.get('/health', (_req, res) => {
 });
 
 app.post('/render', async (req, res) => {
-  const outputPath = path.join(os.tmpdir(), `socialflow-${Date.now()}.mp4`);
-  try {
-    // TODO: actual Remotion render (Phase 06)
-    res.json({ success: true, outputPath });
-  } catch (err) {
-    cleanupFile(outputPath);
-    res.status(500).json({ error: String(err) });
-  } finally {
-    setImmediate(() => cleanupFile(outputPath));
-  }
+  // Phase 06 implements actual Remotion rendering.
+  // Stub returns 501 so callers know it is not yet implemented rather than
+  // silently succeeding with a missing file that would cause upstream errors.
+  res.status(501).json({
+    error: 'Remotion render not yet implemented (Phase 06)',
+    output_path: null,
+    file_size_bytes: null,
+    duration_seconds: null,
+  });
 });
 
 function cleanupFile(filePath: string): void {

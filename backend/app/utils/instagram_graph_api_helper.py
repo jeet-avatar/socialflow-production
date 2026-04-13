@@ -301,7 +301,7 @@ def post_video_to_instagram_graph_api(
                 "platform": "Instagram",
             }
 
-        logger.debug(f"📹 Local file: {local_path}\n📝 Caption: {caption}")
+        logger.debug("📹 Local file: %s | caption_length=%d", local_path, len(caption or ""))
 
         # Step 1: Transcode to Instagram-compatible format
         logger.debug("\n🔄 Step 1: Transcoding video for Instagram...")

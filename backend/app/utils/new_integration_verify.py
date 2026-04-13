@@ -231,40 +231,41 @@ def main():
     gmail_email = "socialflow.network@gmail.com"
     gmail_password = os.getenv("GMAIL_APP_PASSWORD", "")
     _, smtp_message = verifier.verify_gmail_smtp(gmail_email, gmail_password)
-    logger.debug("\n Starting Gmail SMTP Verification...\n")
-    logger.debug(" SMTP Verification Result:")
-    logger.debug("=" * 50)
-    logger.debug(smtp_message)
+    logger.info("\n Starting Gmail SMTP Verification...\n")
+    logger.info(" SMTP Verification Result:")
+    logger.info("=" * 50)
+    logger.info(smtp_message)
 
     # Example usage of Facebook/Instagram Graph API token verification (uncomment and replace with your actual token)
     fb_ig_access_token = "EAARQ9O9PGfgBQViZA13Gd2kL2oEc95Tx0ogJZAA8Ki7f5Ei1eOksgsSZCad1UrUX4W3EvdRKCSMPzAZB99gsLw7vKU30hCdf89ceeeCZA1nT5223RCu4EBI4FMU6fNThpRq33S5Rbt8LZC8WKCxwFLpkVeuAN6fNhrReVvtZByUZCM4P1ZCcIjDfH3G9cI5ew"
     _, message = verifier.verify_facebook_instagram_token(fb_ig_access_token)
-    logger.debug("\n Starting Facebook/Instagram Graph API Token Verification...\n")
-    logger.debug(" Facebook/Instagram Token Verification Result:")
-    logger.debug("=" * 50)
-    logger.debug(message)
+    logger.info("\n Starting Facebook/Instagram Graph API Token Verification...\n")
+    logger.info(" Facebook/Instagram Token Verification Result:")
+    logger.info("=" * 50)
+    logger.info(message)
 
     # Example usage of LinkedIn access token verification using /v2/userinfo endpoint
     linkedin_access_token = "AQVWj3G7wB8EJuUIW8zggwhXq35C-y4PBvyITvVn8WWEa3QG_RsPuyr4_RITR5ajUsvjQqKsW2qkHIwHM3OhUiFWyv6a7fQfsMPuLnPLL3UDvOh7Hob8dpuj2chfzEWjVWPXgCjo3K-gLTn9avIe_smlxotORp0yWX1uT9pe7ZdbWEgkbilNdSichSK3ZVefuJcnfiMPsGBPDZPm02p3IWTDPXYdO7rUDLAN6k-feu6YbHrrzWwLnPna9TPPV6u0qfSl_Gq4D3PbbjMMiq4O9sohg9E1K4z8kX88pJK4HF5X-cnU3eH-f1XV7HB60WeWgV3qNzOcS4XGPUeGwP37fjj7Q7mzhg"
-    logger.debug("\n Starting LinkedIn Access Token Verification...\n")
+    logger.info("\n Starting LinkedIn Access Token Verification...\n")
     _, linkedin_message = verifier.verify_linkedin_access_token(linkedin_access_token)
-    logger.debug(" LinkedIn Token Verification Result:")
-    logger.debug("=" * 50)
-    logger.debug(linkedin_message)
+    logger.info(" LinkedIn Token Verification Result:")
+    logger.info("=" * 50)
+    logger.info(linkedin_message)
 
     # Example usage of YouTube Client ID & Secret verification (NO refresh token)
     youtube_client_id = "YOUR_YOUTUBE_CLIENT_ID.apps.googleusercontent.com"
     youtube_client_secret = "YOUR_YOUTUBE_CLIENT_SECRET"
 
-    logger.debug("\n Starting YouTube Client ID & Secret Verification...\n")
+    logger.info("\n Starting YouTube Client ID & Secret Verification...\n")
     _, yt_client_message = verifier.verify_youtube_client_id_secret(
         youtube_client_id,
         youtube_client_secret
     )
-    logger.debug(" YouTube Client Credential Verification Result:")
-    logger.debug("=" * 50)
-    logger.debug(yt_client_message)
+    logger.info(" YouTube Client Credential Verification Result:")
+    logger.info("=" * 50)
+    logger.info(yt_client_message)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

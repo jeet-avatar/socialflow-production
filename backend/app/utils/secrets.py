@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def load_secrets_from_aws(secret_name: str) -> dict:
     """Fetch secrets from AWS Secrets Manager. Returns {} if not in production or on any error."""
-    if os.getenv("ENVIRONMENT") != "production":
+    if os.getenv("ENVIRONMENT", "").lower() != "production":
         return {}
     try:
         import boto3
