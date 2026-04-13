@@ -48,6 +48,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Rate limiting
+from slowapi import SlowAPIMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIASGIMiddleware
+from utils.rate_limiter import limiter
+app.state.limiter = limiter
+app.add_middleware(SlowAPIASGIMiddleware)
+
 # Ensure static directory exists before mounting
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")

@@ -75,3 +75,4 @@ uvicorn
 websockets
 Werkzeug
 openai-whisper
+slowapi==0.1.9
