@@ -14,6 +14,9 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'), override=True)
 
+from utils.secrets import init_secrets
+init_secrets()
+
 # ── API key presence check (startup only) ───────────────────────────────────
 _startup_logger = logging.getLogger("startup")
 for _key in ("ANTHROPIC_API_KEY", "GOOGLE_AI_API_KEY", "OPENAI_API_KEY", "FAL_API_KEY"):
