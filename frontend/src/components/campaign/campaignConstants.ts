@@ -4,7 +4,7 @@ export const DEFAULT_USER_LOGO =
   'https://img.freepik.com/premium-vector/abstract-modern-business-logo-design-template_1253202-84181.jpg';
 export const DEFAULT_VIDEO_TITLE = 'AI Generated Marketing Video';
 
-const CDN = 'https://d2nbx2qjod9qta.cloudfront.net';
+const CDN = import.meta.env.VITE_CDN_URL ?? 'https://d2nbx2qjod9qta.cloudfront.net';
 
 export const VOICE_OPTIONS = [
   { id: '',                       label: 'Auto',    description: 'Backend default',           gender: 'neutral' as const, accent: '',           preview: '' },

@@ -10,8 +10,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import SocialIntegration from './SocialIntegration';
+import { API_BASE_URL } from '../config/api';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'https://socialflow.network';
+const API_URL = API_BASE_URL;
 
 interface SubscriptionState {
   plan: string;
@@ -174,7 +175,10 @@ const UserProfile = ({ selectedPlatform, onPlatformChange }: UserProfileProps) =
     if (!user) return;
     (async () => {
       try {
-        const { data } = await axios.get(`${API_URL}/api/subscription/status/${user.sub}`);
+        const token = await getAuthToken();
+        const { data } = await axios.get(`${API_URL}/api/subscription/status/${user.sub}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setSubscriptionData({
           plan: (data.plan as string | undefined) ?? 'free',
           price: (data.subscription_details?.price as number | undefined) ?? 0,
@@ -251,7 +255,10 @@ const UserProfile = ({ selectedPlatform, onPlatformChange }: UserProfileProps) =
     setCancelLoading(true);
     setCancelMessage(null);
     try {
-      await axios.post(`${API_URL}/api/subscription/cancel/${user.sub}`);
+      const token = await getAuthToken();
+      await axios.post(`${API_URL}/api/subscription/cancel/${user.sub}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setCancelMessage('Your subscription will be cancelled at the end of the billing period.');
       setShowCancelConfirm(false);
       setSubscriptionData((prev) => prev ? { ...prev, cancel_at_period_end: true } : prev);

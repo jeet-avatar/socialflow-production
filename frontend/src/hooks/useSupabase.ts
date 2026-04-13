@@ -36,7 +36,7 @@ export const useAuth = () => {
     if (isSignedIn && user) {
       getToken()
         .then(async (token) => {
-          if (token) localStorage.setItem('test_token', token);
+          if (!token) return;
 
           // Sync user with MongoDB backend
           try {
@@ -73,7 +73,6 @@ export const useAuth = () => {
   }, [isSignedIn, user?.id]);
 
   const signOut = async () => {
-    localStorage.removeItem('test_token');
     localStorage.removeItem('user_stats');
     localStorage.removeItem('user_info');
     await clerkSignOut();
@@ -81,8 +80,7 @@ export const useAuth = () => {
 
   const refreshProfile = async () => {
     try {
-      const token = await getToken();
-      if (token) localStorage.setItem('test_token', token);
+      await getToken();
     } catch { /* token refresh failed silently */ }
   };
 

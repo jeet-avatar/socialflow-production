@@ -12,7 +12,6 @@ const AppWithAuth = () => {
 
   if (DEV_BYPASS_AUTH) {
     registerTokenGetter(async () => 'dev-bypass');
-    localStorage.setItem('test_token', 'dev-bypass');
     return (
       <Dashboard
         onLogout={() => { globalThis.location.href = '/'; }}

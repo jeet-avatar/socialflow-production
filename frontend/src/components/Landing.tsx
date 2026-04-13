@@ -13,8 +13,8 @@ import DataProcessingAddendum from './DataProcessingAddendum';
 import LegalContactNotice from './LegalContactNotice';
 import PaymentRefundPolicy from './PaymentRefundPolicy';
 
-// Stripe Configuration
-const STRIPE_CHECKOUT_URL = "https://buy.stripe.com/3cI7sM09FfRJ9RpfJ56kg00";
+// Stripe checkout URL — set VITE_STRIPE_CHECKOUT_URL in .env
+const STRIPE_CHECKOUT_URL = import.meta.env.VITE_STRIPE_CHECKOUT_URL ?? '';
 
 const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
   const [currentPage, setCurrentPage] = useState<'landing' | 'privacy-policy' | 'cookie-policy' | 'security-policy' | 'terms' | 'third-party' | 'acceptable-use' | 'ai-automation' | 'copyright-dmca' | 'data-processing' | 'legal-contact' | 'payment-refund'>('landing');
@@ -69,12 +69,12 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
   }
   
   const handleSubscribe = (planName: string) => {
-    if (planName === 'Free') {
-      // Redirect to signup for free plan
+    if (planName === 'Starter') {
       handleGetStarted();
-    } else {
-      // Redirect to Stripe checkout for Professional plan
+    } else if (STRIPE_CHECKOUT_URL) {
       window.open(STRIPE_CHECKOUT_URL, '_blank');
+    } else {
+      handleGetStarted();
     }
   };
   const features = [
@@ -112,27 +112,40 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
 
   const plans = [
     {
-      name: "Free",
-      price: "$0",
+      name: "Starter",
+      price: "$29",
       features: [
-        "5 Videos per month",
+        "1 Channel",
+        "50 AI Videos per month",
+        "YouTube + Instagram + Facebook",
         "Basic Analytics",
         "Email Support",
-        "Single Platform Publishing"
       ]
     },
     {
-      name: "Professional",
-      price: "$49",
+      name: "Creator",
+      price: "$79",
       popular: true,
       features: [
-        "Unlimited AI Video Generation",
-        "Multi-Platform Publishing",
+        "3 Channels",
+        "Unlimited AI Videos",
+        "All Platforms incl. TikTok",
         "Advanced Analytics",
         "Priority Support",
-        "Custom Branding",
+        "Custom Brand Kit",
+      ]
+    },
+    {
+      name: "Agency",
+      price: "$199",
+      features: [
+        "10 Channels",
+        "Unlimited AI Videos",
+        "All Platforms",
+        "White-label Reports",
+        "Dedicated Support",
         "API Access",
-        "Webhook Integrations"
+        "Webhook Integrations",
       ]
     }
   ];
@@ -261,7 +274,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
               Choose the perfect plan for your social media automation needs
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {plans.map((plan, index) => (
               <div
                 key={index}
@@ -299,10 +312,8 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
                       : 'glass-card text-dark-text hover:bg-glass-white hover:shadow-lg'
                   }`}
                 >
-                  {plan.name === 'Free' ? (
-                    <>
-                      <span>Get Started Free</span>
-                    </>
+                  {plan.name === 'Starter' ? (
+                    <span>Get Started</span>
                   ) : (
                     <>
                       <CreditCard className="h-5 w-5" />
@@ -333,7 +344,7 @@ const Landing = ({ onGetStarted }: { onGetStarted: () => void }) => {
               className="btn-gradient px-10 py-4 rounded-2xl text-lg font-semibold transition-all duration-200 shadow-glow-teal inline-flex items-center space-x-3 hover:scale-105 hover:shadow-2xl hover:shadow-accent-teal/60"
             >
               <CreditCard className="h-5 w-5" />
-              <span>Subscribe for $49/month</span>
+              <span>Subscribe Now</span>
               <ArrowRight className="h-5 w-5" />
             </a>
 

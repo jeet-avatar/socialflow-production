@@ -236,18 +236,26 @@ def main():
     logger.info("=" * 50)
     logger.info(smtp_message)
 
-    # Example usage of Facebook/Instagram Graph API token verification (uncomment and replace with your actual token)
-    fb_ig_access_token = "EAARQ9O9PGfgBQViZA13Gd2kL2oEc95Tx0ogJZAA8Ki7f5Ei1eOksgsSZCad1UrUX4W3EvdRKCSMPzAZB99gsLw7vKU30hCdf89ceeeCZA1nT5223RCu4EBI4FMU6fNThpRq33S5Rbt8LZC8WKCxwFLpkVeuAN6fNhrReVvtZByUZCM4P1ZCcIjDfH3G9cI5ew"
-    _, message = verifier.verify_facebook_instagram_token(fb_ig_access_token)
+    # Example usage of Facebook/Instagram Graph API token verification
+    fb_ig_access_token = os.getenv("FB_IG_ACCESS_TOKEN", "")
+    if not fb_ig_access_token:
+        logger.warning("FB_IG_ACCESS_TOKEN not set — skipping Facebook/Instagram verification")
+        message = "Skipped: FB_IG_ACCESS_TOKEN env var not set"
+    else:
+        _, message = verifier.verify_facebook_instagram_token(fb_ig_access_token)
     logger.info("\n Starting Facebook/Instagram Graph API Token Verification...\n")
     logger.info(" Facebook/Instagram Token Verification Result:")
     logger.info("=" * 50)
     logger.info(message)
 
     # Example usage of LinkedIn access token verification using /v2/userinfo endpoint
-    linkedin_access_token = "AQVWj3G7wB8EJuUIW8zggwhXq35C-y4PBvyITvVn8WWEa3QG_RsPuyr4_RITR5ajUsvjQqKsW2qkHIwHM3OhUiFWyv6a7fQfsMPuLnPLL3UDvOh7Hob8dpuj2chfzEWjVWPXgCjo3K-gLTn9avIe_smlxotORp0yWX1uT9pe7ZdbWEgkbilNdSichSK3ZVefuJcnfiMPsGBPDZPm02p3IWTDPXYdO7rUDLAN6k-feu6YbHrrzWwLnPna9TPPV6u0qfSl_Gq4D3PbbjMMiq4O9sohg9E1K4z8kX88pJK4HF5X-cnU3eH-f1XV7HB60WeWgV3qNzOcS4XGPUeGwP37fjj7Q7mzhg"
+    linkedin_access_token = os.getenv("LINKEDIN_ACCESS_TOKEN", "")
     logger.info("\n Starting LinkedIn Access Token Verification...\n")
-    _, linkedin_message = verifier.verify_linkedin_access_token(linkedin_access_token)
+    if not linkedin_access_token:
+        logger.warning("LINKEDIN_ACCESS_TOKEN not set — skipping LinkedIn verification")
+        linkedin_message = "Skipped: LINKEDIN_ACCESS_TOKEN env var not set"
+    else:
+        _, linkedin_message = verifier.verify_linkedin_access_token(linkedin_access_token)
     logger.info(" LinkedIn Token Verification Result:")
     logger.info("=" * 50)
     logger.info(linkedin_message)

@@ -93,11 +93,11 @@ const ThirdPartyNotices: React.FC<ThirdPartyNoticesProps> = ({ onBack }) => {
       compliance: 'SOC 2 Type II, ISO 27001 certified'
     },
     {
-      name: 'Auth0',
+      name: 'Clerk',
       purpose: 'Authentication Services',
       description: 'Manages user authentication and sessions',
-      privacy: 'https://auth0.com/privacy',
-      compliance: 'SOC 2 Type II, ISO 27001 certified'
+      privacy: 'https://clerk.com/privacy',
+      compliance: 'SOC 2 Type II certified'
     }
   ];
 

@@ -1,7 +1,7 @@
 /**
  * Central async token utility.
  * Call registerTokenGetter() once at app startup (useAuth hook) to wire up
- * Auth0's getAccessTokenSilently — after that every caller gets a fresh token.
+ * Clerk's getToken — after that every caller gets a fresh token.
  */
 
 let _getter: (() => Promise<string>) | null = null;
@@ -18,8 +18,7 @@ export const getAuthToken = async (): Promise<string | null> => {
       return null;
     }
   }
-  // Fallback during SSR or before Auth0 is ready
-  return localStorage.getItem('test_token');
+  return null;
 };
 
 export const getAuthHeaders = async (): Promise<HeadersInit> => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as leadsSearchService from '../services/leadsSearchService';
 import * as companyAnalysisService from '../services/companyAnalysisService';
+import { API_BASE_URL } from '../config/api';
 
 // ── Count-up animation hook ───────────────────────────────────────────────────
 const useCountUp = (target: number, duration = 900, active = true) => {
@@ -215,8 +216,10 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
     const fetchPlan = async () => {
       if (!user?.sub) return;
       try {
-        const API_URL = import.meta.env.VITE_API_URL ?? 'https://socialflow.network';
-        const response = await fetch(`${API_URL}/api/subscription/status/${user.sub}`);
+        const token = await getAuthToken();
+        const response = await fetch(`${API_BASE_URL}/api/subscription/status/${user.sub}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = await response.json();
         setCurrentPlan(data.plan ?? 'free');
       } catch {
@@ -231,8 +234,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
     const loadMongoProfile = async () => {
       try {
         const token = await getAuthToken();
-        const API_URL = import.meta.env.VITE_API_URL ?? 'https://socialflow.network';
-        const r = await fetch(`${API_URL}/auth/user-profile`, { headers: { Authorization: `Bearer ${token}` } });
+        const r = await fetch(`${API_BASE_URL}/auth/user-profile`, { headers: { Authorization: `Bearer ${token}` } });
         if (!r.ok) return;
         const data = await r.json();
         if (data?.user)
