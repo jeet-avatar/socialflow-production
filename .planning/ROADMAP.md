@@ -39,10 +39,21 @@
 
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
-| 04 | AI Model Layer | Model-agnostic provider interface (script/voice/video/research) | Backlog |
+| 04 | AI Model Layer | Model-agnostic provider interface (script/voice/video/research) | Planning |
 | 05 | Celery Workers | Async video generation pipeline, queue management, retry logic | Backlog |
 | 06 | Shorts + TikTok | Remotion 9:16 composition, TikTok Content Posting API v2 | Backlog |
 | 07 | UI/UX Redesign | Channel dashboard, pipeline builder, model picker | Backlog |
+
+### Phase 04: AI Model Layer
+
+**Goal:** Wire 4 hardcoded AI call sites to read from saved model config, expose provider discovery endpoint, and ship a minimal frontend hook — making the AI pipeline model-agnostic per channel.
+
+**Requirements:** MODEL-01, MODEL-02, MODEL-03, MODEL-04
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 04-01-PLAN.md — provider_config.py resolver + /providers endpoint + wire 4 call sites + useModelConfig hook + tests
 
 ---
 
