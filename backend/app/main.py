@@ -34,9 +34,12 @@ from routes.content_routes import router as content_router
 from routes.videos_routes import router as videos_router
 from routes.subscription_routes import router as subscription_router
 from routes.user_routes import router as user_router
+from routes.channel_routes import router as channels_router
+from routes.model_config_routes import router as model_config_router
 from routes.chat_routes import router as chat_router
 
 # Import services for startup
+from utils.db_init import init_collections
 from utils.integrations_service import integrations_service
 from utils.mongodb_service import mongodb_service
 
@@ -103,6 +106,8 @@ app.include_router(content_router)
 app.include_router(videos_router)
 app.include_router(subscription_router)
 app.include_router(user_router)
+app.include_router(channels_router)
+app.include_router(model_config_router)
 app.include_router(chat_router)
 
 # Startup event
@@ -121,6 +126,10 @@ async def startup_event():
                 timeout=10.0
             )
             logger.info("✅ MongoDB connected successfully")
+
+            # Initialize new collections + indexes
+            db = mongodb_service.get_database()
+            init_collections(db)
 
             # Then initialize integrations service
             await asyncio.wait_for(

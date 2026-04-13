@@ -40,7 +40,7 @@ class UserService {
       email: (user.email as string) ?? '',
       full_name: (userMeta.full_name ?? userMeta.name ?? user.name) as string | undefined,
       avatar_url: (userMeta.avatar_url ?? userMeta.picture ?? user.picture) as string | undefined,
-      provider: (appMeta.provider ?? 'auth0') as string,
+      provider: (appMeta.provider ?? 'clerk') as string,
       email_confirmed_at: (user.email_confirmed_at as string) ?? new Date().toISOString(),
       last_sign_in_at: (user.last_sign_in_at as string) ?? new Date().toISOString(),
       user_metadata: userMeta,

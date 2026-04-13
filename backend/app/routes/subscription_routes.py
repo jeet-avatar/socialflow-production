@@ -22,7 +22,57 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_BUY_BUTTON_ID = os.getenv("STRIPE_BUY_BUTTON_ID", "")
 STRIPE_CHECKOUT_URL = os.getenv("STRIPE_CHECKOUT_URL", "")
-SUBSCRIPTION_PRICE = 49.00
+PLAN_CATALOG = [
+    {
+        "id": "starter",
+        "name": "Starter",
+        "price": 29,
+        "currency": "USD",
+        "billing_cycle": "monthly",
+        "features": [
+            "1 Channel",
+            "50 AI Videos per month",
+            "YouTube + Instagram + Facebook",
+            "Basic Analytics",
+            "Email Support",
+        ],
+        "limits": {"channels": 1, "videos_per_month": 50, "platforms": 3},
+    },
+    {
+        "id": "creator",
+        "name": "Creator",
+        "price": 79,
+        "currency": "USD",
+        "billing_cycle": "monthly",
+        "features": [
+            "3 Channels",
+            "Unlimited AI Videos",
+            "All Platforms incl. TikTok",
+            "Advanced Analytics",
+            "Priority Support",
+            "Custom Brand Kit",
+        ],
+        "limits": {"channels": 3, "videos_per_month": -1, "platforms": -1},
+        "popular": True,
+    },
+    {
+        "id": "agency",
+        "name": "Agency",
+        "price": 199,
+        "currency": "USD",
+        "billing_cycle": "monthly",
+        "features": [
+            "10 Channels",
+            "Unlimited AI Videos",
+            "All Platforms",
+            "White-label Reports",
+            "Dedicated Support",
+            "API Access",
+            "Webhook Integrations",
+        ],
+        "limits": {"channels": 10, "videos_per_month": -1, "platforms": -1},
+    },
+]
 
 _SUB_NOT_FOUND = "Subscription not found"
 _WEBHOOK_CONFIG_ERROR = "Webhook configuration error"
@@ -37,8 +87,8 @@ else:
     logger.warning("⚠️ STRIPE_SECRET_KEY not configured! Stripe functionality will be limited.")
 
 class SubscriptionInfo(BaseModel):
-    plan: str = "Professional"
-    price: float = 49.00
+    plan: str = "starter"
+    price: float = 29.00
     currency: str = "USD"
     billing_cycle: str = "monthly"
     features: list = [
@@ -68,59 +118,13 @@ async def get_subscription_config():
         "publishable_key": STRIPE_PUBLISHABLE_KEY,
         "buy_button_id": STRIPE_BUY_BUTTON_ID,
         "checkout_url": STRIPE_CHECKOUT_URL,
-        "price": SUBSCRIPTION_PRICE,
         "currency": "USD"
     }
 
 @router.get("/plans")
 async def get_subscription_plans():
-    """
-    Get available subscription plans
-    """
-    return {
-        "plans": [
-            {
-                "id": "free",
-                "name": "Free",
-                "price": 0,
-                "currency": "USD",
-                "billing_cycle": "monthly",
-                "features": [
-                    "5 Videos per month",
-                    "Basic Analytics",
-                    "Email Support",
-                    "Single Platform Publishing"
-                ],
-                "limits": {
-                    "videos_per_month": 5,
-                    "platforms": 1,
-                }
-            },
-            {
-                "id": "professional",
-                "name": "Professional",
-                "price": 49,
-                "currency": "USD",
-                "billing_cycle": "monthly",
-                "features": [
-                    "Unlimited AI Video Generation",
-                    "Multi-Platform Publishing",
-                    "Advanced Analytics",
-                    "Priority Support",
-                    "Custom Branding",
-                    "API Access",
-                    "Webhook Integrations"
-                ],
-                "limits": {
-                    "videos_per_month": -1,  # unlimited
-                    "platforms": -1,  # unlimited
-                },
-                "stripe_url": STRIPE_CHECKOUT_URL,
-                "buy_button_id": STRIPE_BUY_BUTTON_ID,
-                "popular": True
-            }
-        ]
-    }
+    """Get available subscription plans (3-tier: Starter/Creator/Agency)."""
+    return {"plans": PLAN_CATALOG}
 
 @router.get(
     "/status/{user_id}",
