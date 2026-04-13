@@ -1,0 +1,34 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update ECS service (backend)
+        run: |
+          aws ecs update-service \
+            --cluster socialflow-staging \
+            --service socialflow-backend \
+            --force-new-deployment
+
+      - name: Wait for stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster socialflow-staging \
+            --services socialflow-backend
+
+      - name: Health check
+        run: |
+          sleep 10
+          curl --fail ${{ secrets.STAGING_URL }}/health || exit 1
