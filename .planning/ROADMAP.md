@@ -40,7 +40,7 @@
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
 | 04 | AI Model Layer | Complete    | 2026-04-13 |
-| 05 | Celery Workers | Async video generation pipeline, queue management, retry logic | Backlog |
+| 05 | Celery Workers | Async video generation pipeline, queue management, retry logic | Planned |
 | 06 | Shorts + TikTok | Remotion 9:16 composition, TikTok Content Posting API v2 | Backlog |
 | 07 | UI/UX Redesign | Channel dashboard, pipeline builder, model picker | Backlog |
 
@@ -54,6 +54,19 @@
 
 Plans:
 - [x] 04-01-PLAN.md — provider_config.py resolver + /providers endpoint + wire 4 call sites + useModelConfig hook + tests (COMPLETE 2026-04-13, commits a5d66ec + a46661e + b6819e0, 26/26 tests passing)
+
+---
+
+### Phase 05: Celery Workers
+
+**Goal:** Replace the synchronous POST /video-remotion HTTP handler with a Celery task so long-running AI jobs (ElevenLabs + Whisper + DALL-E/fal.ai + Remotion + S3) don't block HTTP workers or time out. Add Redis-backed progress tracking and retry logic.
+
+**Requirements:** CELERY-01, CELERY-02, CELERY-03, CELERY-04, CELERY-05
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 05-01-PLAN.md — celery_app.py + redis_client.py + video_tasks.py + content_routes refactor + docker-compose celery_worker + unit tests
 
 ---
 
