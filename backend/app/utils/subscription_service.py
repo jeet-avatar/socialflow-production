@@ -30,17 +30,21 @@ class SubscriptionService:
             self.subscriptions_collection.create_index("stripe_subscription_id")
             self.usage_collection.create_index([("user_id", 1), ("period_start", 1)])
 
-    def create_subscription(self, user_id: str, stripe_data: Dict) -> Dict:
+    # Prices by plan id — kept in sync with PLAN_CATALOG in subscription_routes.py
+    _PLAN_PRICES = {"starter": 29, "creator": 79, "agency": 199}
+
+    def create_subscription(self, user_id: str, stripe_data: Dict, plan: str = "starter") -> Dict:
         """Create or update subscription after successful payment"""
         self._ensure_connection()
 
+        price = self._PLAN_PRICES.get(plan, self._PLAN_PRICES["starter"])
         subscription_data = {
             "user_id": user_id,
             "stripe_customer_id": stripe_data.get("customer"),
             "stripe_subscription_id": stripe_data.get("id"),
-            "plan": "professional",
+            "plan": plan,
             "status": "active",
-            "price": 49.00,
+            "price": price,
             "currency": "USD",
             "billing_cycle": "monthly",
             "current_period_start": datetime.fromtimestamp(stripe_data.get("current_period_start", 0)),
@@ -57,7 +61,7 @@ class SubscriptionService:
             upsert=True
         )
 
-        logger.info(f"Subscription created/updated for user {user_id}: Professional plan")
+        logger.info(f"Subscription created/updated for user {user_id}: {plan} plan (${price})")
         return subscription_data
 
     def get_subscription(self, user_id: str) -> Optional[Dict]:
