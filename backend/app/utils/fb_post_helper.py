@@ -1,3 +1,4 @@
+import logging
 """
 Facebook Posting Helper - Uses proven fb_upload.py implementation
 """
@@ -5,6 +6,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from utils.integrations_service import integrations_service
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -12,8 +14,8 @@ GRAPH_API = "https://graph.facebook.com/v24.0"
 
 def get_page_access_token(user_access_token: str, page_id: str) -> str:
     """Fetch the page access token using the user access token"""
-    print(f"🔍 Attempting to get page token for page: {page_id}")
-    print(f"🔍 User token length: {len(user_access_token) if user_access_token else 0}")
+    logger.debug(f"🔍 Attempting to get page token for page: {page_id}")
+    logger.debug(f"🔍 User token length: {len(user_access_token) if user_access_token else 0}")
 
     url = f"{GRAPH_API}/me/accounts"
     params = {"access_token": user_access_token}
@@ -23,16 +25,16 @@ def get_page_access_token(user_access_token: str, page_id: str) -> str:
         response.raise_for_status()
         data = response.json()
 
-        print(f"🔍 Facebook API response: {data}")
+        logger.debug(f"🔍 Facebook API response: {data}")
 
         pages = data.get("data", [])
-        print(f"🔍 Found {len(pages)} pages")
+        logger.debug(f"🔍 Found {len(pages)} pages")
 
         for page in pages:
-            print(f"   - Page: {page.get('name')} (ID: {page.get('id')})")
+            logger.debug(f"   - Page: {page.get('name')} (ID: {page.get('id')})")
             if page.get("id") == page_id:
                 page_token = page.get("access_token")
-                print(f"✅ Found matching page! Token length: {len(page_token) if page_token else 0}")
+                logger.debug(f"✅ Found matching page! Token length: {len(page_token) if page_token else 0}")
                 return page_token
 
         # If we get here, page not found
@@ -42,7 +44,7 @@ def get_page_access_token(user_access_token: str, page_id: str) -> str:
             f"Available pages: {', '.join(available_pages) if available_pages else 'None'}"
         )
     except requests.exceptions.RequestException as e:
-        print(f"❌ Facebook API request failed: {e}")
+        logger.debug(f"❌ Facebook API request failed: {e}")
         raise RuntimeError(f"Failed to connect to Facebook API: {str(e)}")
 
 
@@ -54,7 +56,7 @@ def _resolve_fb_credentials(user_id):
     cannot be resolved.
     """
     if not user_id:
-        print("❌ DEBUG: No user_id provided")
+        logger.debug("❌ DEBUG: No user_id provided")
         return {
             "success": False,
             "error": "User authentication required",
@@ -63,21 +65,21 @@ def _resolve_fb_credentials(user_id):
 
     integration = integrations_service.get_integration(user_id, "facebook", decrypt=True)
 
-    print(f"🔍 DEBUG: integration = {integration}")
+    logger.debug(f"🔍 DEBUG: integration = {integration}")
 
     if integration and integration.get("is_connected"):
         credentials = integration.get("credentials", {})
         access_token = credentials.get("accessToken")
         page_id = credentials.get("pageId")
-        print(f"✅ Using Facebook credentials from integrations for user: {user_id}")
-        print(f"🔍 DEBUG: ACCESS_TOKEN = {access_token[:20] if access_token else None}...")
-        print(f"🔍 DEBUG: PAGE_ID = {page_id}")
+        logger.debug(f"✅ Using Facebook credentials from integrations for user: {user_id}")
+        logger.debug(f"🔍 DEBUG: ACCESS_TOKEN = {access_token[:20] if access_token else None}...")
+        logger.debug(f"🔍 DEBUG: PAGE_ID = {page_id}")
         return (access_token, page_id)
 
-    print("❌ DEBUG: Integration not found or not connected")
-    print(f"   integration exists: {integration is not None}")
+    logger.debug("❌ DEBUG: Integration not found or not connected")
+    logger.debug(f"   integration exists: {integration is not None}")
     if integration:
-        print(f"   is_connected: {integration.get('is_connected')}")
+        logger.debug(f"   is_connected: {integration.get('is_connected')}")
     return {
         "success": False,
         "error": "Facebook integration not configured",
@@ -93,10 +95,10 @@ def _get_page_token(access_token, page_id):
     """
     try:
         page_access_token = get_page_access_token(access_token, page_id)
-        print(f"✅ Retrieved page access token for page: {page_id}")
+        logger.debug(f"✅ Retrieved page access token for page: {page_id}")
         return (page_access_token, None)
     except Exception as e:
-        print(f"❌ Failed to get page access token: {e}")
+        logger.debug(f"❌ Failed to get page access token: {e}")
         return (None, {
             "success": False,
             "error": f"Failed to get page access token: {str(e)}",
@@ -111,8 +113,8 @@ def _upload_video_to_page(page_id, page_access_token, video_file_path, descripti
     url = f"{GRAPH_API}/{page_id}/videos"
 
     file_size = os.path.getsize(video_file_path)
-    print(f"   File size: {file_size / 1024 / 1024:.2f} MB")
-    print(f"   Uploading to {url}...")
+    logger.debug(f"   File size: {file_size / 1024 / 1024:.2f} MB")
+    logger.debug(f"   Uploading to {url}...")
 
     with open(video_file_path, 'rb') as video_file:
         files = {'source': video_file}
@@ -134,7 +136,7 @@ def _upload_video_to_page(page_id, page_access_token, video_file_path, descripti
     video_id = result.get("id")
     reel_id = video_id
 
-    print(f" Reel published successfully! ID: {reel_id}")
+    logger.debug(f" Reel published successfully! ID: {reel_id}")
 
     return {
         "success": True,
@@ -157,8 +159,8 @@ def post_video_to_facebook(video_file_path: str, description: str, user_id: str 
         dict with success status and details
     """
     try:
-        print(f" Starting Facebook Reel upload for: {video_file_path}")
-        print(f"🔍 DEBUG: user_id = {user_id}")
+        logger.debug(f" Starting Facebook Reel upload for: {video_file_path}")
+        logger.debug(f"🔍 DEBUG: user_id = {user_id}")
 
         creds = _resolve_fb_credentials(user_id)
         if isinstance(creds, dict):
@@ -198,7 +200,7 @@ def post_video_to_facebook(video_file_path: str, description: str, user_id: str 
                 "hint": "Make sure you have admin access to the Facebook page"
             }
 
-        print("📝 Uploading video to Facebook Page...")
+        logger.debug("📝 Uploading video to Facebook Page...")
         return _upload_video_to_page(page_id, page_access_token, video_file_path, description)
 
     except requests.exceptions.RequestException as e:

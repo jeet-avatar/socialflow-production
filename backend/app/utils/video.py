@@ -1,3 +1,4 @@
+import logging
 import traceback
 from elevenlabs.client import ElevenLabs
 try:
@@ -6,7 +7,7 @@ except ImportError:
     try:
         from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, CompositeAudioClip, ImageClip, ColorClip, concatenate_videoclips
     except ImportError:
-        print("WARNING: MoviePy not installed. Video generation will not work.")
+        logger.debug("WARNING: MoviePy not installed. Video generation will not work.")
         VideoFileClip = None
 
 # Handle crop separately - moviepy 2.x renamed it to Crop
@@ -46,9 +47,9 @@ try:
     _ffmpeg_dir = os.path.dirname(_ffmpeg_exe)
     if _ffmpeg_dir not in os.environ.get('PATH', ''):
         os.environ['PATH'] = _ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
-    print(f"FFmpeg available at: {_ffmpeg_exe}")
+    logger.debug(f"FFmpeg available at: {_ffmpeg_exe}")
 except Exception as _e:
-    print(f"WARNING: imageio_ffmpeg setup failed: {_e}")
+    logger.debug(f"WARNING: imageio_ffmpeg setup failed: {_e}")
 
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
 
@@ -77,7 +78,7 @@ import shutil  # noqa: E402
 imagemagick_binary = shutil.which('convert')
 if imagemagick_binary:
     os.environ['IMAGEMAGICK_BINARY'] = imagemagick_binary
-    print(f"ImageMagick found at: {imagemagick_binary}")
+    logger.debug(f"ImageMagick found at: {imagemagick_binary}")
 else:
     # Common ImageMagick paths on macOS
     possible_paths = [
@@ -88,13 +89,14 @@ else:
     for path in possible_paths:
         if os.path.exists(path):
             os.environ['IMAGEMAGICK_BINARY'] = path
-            print(f"ImageMagick found at: {path}")
+            logger.debug(f"ImageMagick found at: {path}")
             break
     else:
-        print("WARNING: ImageMagick not found. TextClip may not work. Install with: brew install imagemagick")
+        logger.debug("WARNING: ImageMagick not found. TextClip may not work. Install with: brew install imagemagick")
 
 # Fix SSL certificate issues for whisper model downloads — use certifi bundle
 import certifi
+logger = logging.getLogger(__name__)
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context)))
 
@@ -112,7 +114,7 @@ def fetch_if_url(path_or_url, file_ext="mp4"):
         for chunk in r.iter_content(chunk_size=8192):
             temp_file.write(chunk)
         temp_file.close()
-        print(f"Downloaded remote file to {temp_file.name}")
+        logger.debug(f"Downloaded remote file to {temp_file.name}")
         return temp_file.name
     return path_or_url
 
@@ -123,31 +125,31 @@ def _load_logo_from_local(url: str):
     backend_app_dir = os.path.dirname(current_dir)  # Go up from utils/ to app/
     local_file_path = os.path.join(backend_app_dir, "static", relative_path)
 
-    print(f"   📁 Reading from local file: {local_file_path}")
+    logger.debug(f"   📁 Reading from local file: {local_file_path}")
 
     if os.path.exists(local_file_path):
         with open(local_file_path, 'rb') as f:
             img_data = f.read()
-        print(f"   ✅ Read {len(img_data)} bytes from local file")
+        logger.debug(f"   ✅ Read {len(img_data)} bytes from local file")
         img = Image.open(BytesIO(img_data))
-        print(f"   Image format: {img.format}, mode: {img.mode}, size: {img.size}")
+        logger.debug(f"   Image format: {img.format}, mode: {img.mode}, size: {img.size}")
         return img
     else:
-        print(f"   ❌ Local file not found: {local_file_path}")
+        logger.debug(f"   ❌ Local file not found: {local_file_path}")
         raise FileNotFoundError(f"Logo file not found: {local_file_path}")
 
 def _load_logo_from_url(url: str):
     """Download logo from an external HTTP URL."""
-    print("   🌐 Downloading from external URL")
+    logger.debug("   🌐 Downloading from external URL")
     r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
-    print(f"   Response status: {r.status_code}")
+    logger.debug(f"   Response status: {r.status_code}")
     r.raise_for_status()
 
-    print(f"   Content length: {len(r.content)} bytes")
-    print(f"   Content type: {r.headers.get('content-type', 'unknown')}")
+    logger.debug(f"   Content length: {len(r.content)} bytes")
+    logger.debug(f"   Content type: {r.headers.get('content-type', 'unknown')}")
 
     img = Image.open(BytesIO(r.content))
-    print(f"   Image format: {img.format}, mode: {img.mode}, size: {img.size}")
+    logger.debug(f"   Image format: {img.format}, mode: {img.mode}, size: {img.size}")
     return img
 
 def _make_transparent(img):
@@ -170,7 +172,7 @@ def _fallback_logo():
 def download_logo(url):
     """Download logo from URL or load from local file system"""
     try:
-        print(f"📥 Loading logo from: {url}")
+        logger.debug(f"📥 Loading logo from: {url}")
 
         # Check if it's a socialflow.network URL pointing to our static files
         if "/static/" in url and "socialflow.network" in url:
@@ -182,20 +184,20 @@ def download_logo(url):
             img = img.convert("RGBA")
 
         img = _make_transparent(img)
-        print(f"✅ Logo loaded and processed successfully: {img.size[0]}x{img.size[1]}")
+        logger.debug(f"✅ Logo loaded and processed successfully: {img.size[0]}x{img.size[1]}")
         return img
 
     except FileNotFoundError as e:
-        print(f"❌ File not found: {str(e)}")
-        print(_FALLBACK_LOGO_MSG)
+        logger.debug(f"❌ File not found: {str(e)}")
+        logger.debug(_FALLBACK_LOGO_MSG)
         return _fallback_logo()
     except requests.exceptions.RequestException as e:
-        print(f"❌ Network error downloading logo from {url}")
-        print(_FALLBACK_LOGO_MSG)
+        logger.debug(f"❌ Network error downloading logo from {url}")
+        logger.debug(_FALLBACK_LOGO_MSG)
         return _fallback_logo()
     except Exception as e:
-        print(f"❌ Error processing logo from {url}")
-        print(_FALLBACK_LOGO_MSG)
+        logger.debug(f"❌ Error processing logo from {url}")
+        logger.debug(_FALLBACK_LOGO_MSG)
         traceback.print_exc()
         return _fallback_logo()
 
@@ -213,7 +215,7 @@ def imageclip_from_buffer(img):
         return ImageClip(img_array)
 
     except Exception as e:
-        print(f"❌ Error creating ImageClip: {e}")
+        logger.debug(f"❌ Error creating ImageClip: {e}")
         # Return a default colored clip as fallback
         fallback_array = np.full((200, 200, 4), [100, 100, 255, 255], dtype=np.uint8)
         return ImageClip(fallback_array)
@@ -226,23 +228,23 @@ def _resolve_client_logo(company_name, user_id, client_logo_url):
     if company_name and user_id:
         try:
             from utils.campaigns_service import campaigns_service
-            print(f"Fetching logo URL from campaigns collection for company: {company_name}")
+            logger.debug(f"Fetching logo URL from campaigns collection for company: {company_name}")
             campaigns = campaigns_service.search_campaigns(user_id, company_name, limit=1)
             if campaigns:
                 fetched = campaigns[0].get('logo_url', '')
                 if fetched:
-                    print(f"SUCCESS: Using logo URL from campaigns collection: {fetched[:80]}...")
+                    logger.debug(f"SUCCESS: Using logo URL from campaigns collection: {fetched[:80]}...")
                     return fetched
-                print("WARNING: Campaign found but no logo_url stored")
+                logger.debug("WARNING: Campaign found but no logo_url stored")
             else:
-                print(f"WARNING: No campaign found for company: {company_name}")
+                logger.debug(f"WARNING: No campaign found for company: {company_name}")
         except Exception as e:
-            print(f"WARNING: Error fetching logo from campaigns collection: {e}")
+            logger.debug(f"WARNING: Error fetching logo from campaigns collection: {e}")
         resolved = client_logo_url or _DEFAULT_LOGO_URL
-        print(_DEFAULT_LOGO_MSG)
+        logger.debug(_DEFAULT_LOGO_MSG)
         return resolved
     if not client_logo_url:
-        print("INFO: No company_name/user_id provided, using default logo")
+        logger.debug("INFO: No company_name/user_id provided, using default logo")
         return _DEFAULT_LOGO_URL
     return client_logo_url
 
@@ -256,16 +258,16 @@ def _generate_audio(narration_text):
             voice="2EiwWnXFnvU5JabPnv8n",
             model="eleven_multilingual_v2"
         )
-        print("ElevenLabs voiceover generated successfully.")
+        logger.debug("ElevenLabs voiceover generated successfully.")
         return BytesIO(b"".join(audio_data))
     except Exception as e:
-        print(f"WARNING: ElevenLabs quota or API error: {e}")
-        print("Switching to fallback voice using gTTS (Google Text-to-Speech)...")
+        logger.debug(f"WARNING: ElevenLabs quota or API error: {e}")
+        logger.debug("Switching to fallback voice using gTTS (Google Text-to-Speech)...")
         from gtts import gTTS
         buf = BytesIO()
         gTTS(text=narration_text, lang="en", slow=False).write_to_fp(buf)
         buf.seek(0)
-        print("Fallback voiceover generated using gTTS.")
+        logger.debug("Fallback voiceover generated using gTTS.")
         return buf
 
 
@@ -296,9 +298,9 @@ def _build_subtitle_clips(segments, disclaimer_duration, video, selected_font):
 def _build_text_layover_clips(text_layovers, video, selected_font):
     """Convert text-layover spec dicts into timed TextClip objects."""
     if not text_layovers:
-        print("INFO: No text layovers provided; skipping overlays.")
+        logger.debug("INFO: No text layovers provided; skipping overlays.")
         return []
-    print("📺 Using absolute timeline for text layovers (0s = start of full video)")
+    logger.debug("📺 Using absolute timeline for text layovers (0s = start of full video)")
     clips = []
     for item in text_layovers:
         start = item.get("start_time", 0)
@@ -320,7 +322,7 @@ def _build_text_layover_clips(text_layovers, video, selected_font):
             .set_position('center')
         )
         clips.append(overlay)
-        print(f"Added layover: {item['text']} from {start}s to {start + dur}s")
+        logger.debug(f"Added layover: {item['text']} from {start}s to {start + dur}s")
     return clips
 
 
@@ -341,13 +343,13 @@ def _save_and_upload(local_file, local_filename, timestamp):
         bucket_name = os.getenv("AWS_S3_BUCKET", "socialflow-demo-bucket")
         cloudfront_domain = os.getenv("CLOUDFRONT_DOMAIN", "d2nbx2qjod9qta.cloudfront.net")
         key_name = f"videos/generated_video_{timestamp}.mp4"
-        print(f"📤 Uploading to s3://{bucket_name}/{key_name}")
+        logger.debug(f"📤 Uploading to s3://{bucket_name}/{key_name}")
         s3.upload_file(Filename=local_file, Bucket=bucket_name, Key=key_name, ExtraArgs={'ContentType': 'video/mp4'})
         video_url = f"https://{cloudfront_domain}/{key_name}"
-        print(f"🌐 CloudFront Video URL: {video_url}")
+        logger.debug(f"🌐 CloudFront Video URL: {video_url}")
         return video_url
     except Exception as s3_error:
-        print(f"⚠️  WARNING: S3 upload failed: {s3_error}")
+        logger.debug(f"⚠️  WARNING: S3 upload failed: {s3_error}")
         frontend_url = os.getenv('FRONTEND_URL', 'https://socialflow.network')
         return f"{frontend_url}/{_STATIC_DIR}{local_filename}"
 
@@ -366,8 +368,8 @@ def generate_video(
     if not shutil.which('ffmpeg'):
         raise FileNotFoundError("FFmpeg not found. Please install FFmpeg to generate videos.")
 
-    print("FFmpeg found, proceeding with video generation...")
-    print(f"Parameters: company_name={company_name}, user_id={user_id}, client_logo_url={client_logo_url[:50] if client_logo_url else 'None'}...")
+    logger.debug("FFmpeg found, proceeding with video generation...")
+    logger.debug(f"Parameters: company_name={company_name}, user_id={user_id}, client_logo_url={client_logo_url[:50] if client_logo_url else 'None'}...")
 
     client_logo_url = _resolve_client_logo(company_name, user_id, client_logo_url)
 
@@ -385,7 +387,7 @@ def generate_video(
     voiceover_duration = voiceover_audio_clip.duration
 
     if not template_video or not os.path.exists(template_video):
-        print("WARNING: No input video found. Creating a blank video instead.")
+        logger.debug("WARNING: No input video found. Creating a blank video instead.")
         video = ColorClip(size=(1920, 1080), color=(0, 0, 0), duration=voiceover_duration).with_fps(24)
     else:
         video = VideoFileClip(template_video)
@@ -455,19 +457,19 @@ def generate_video(
             if f.startswith("generated_video") and f.endswith(".mp4"):
                 old = os.path.join(static_dir, f)
                 os.remove(old)
-                print(f"🗑️  Deleted old video: {f}")
+                logger.debug(f"🗑️  Deleted old video: {f}")
     except Exception as e:
-        print(f"⚠️  Warning: Could not clean old videos: {e}")
+        logger.debug(f"⚠️  Warning: Could not clean old videos: {e}")
 
-    print(f"Saving video to: {local_file} ({video.w}x{video.h}, {final.duration:.2f}s)")
+    logger.debug(f"Saving video to: {local_file} ({video.w}x{video.h}, {final.duration:.2f}s)")
     final.write_videofile(local_file, fps=getattr(video, 'fps', 24), codec="libx264", audio_codec="aac")
-    print(f"Video saved locally: {local_file}")
+    logger.debug(f"Video saved locally: {local_file}")
 
     if not os.path.exists(local_file):
-        print(f"ERROR: File not created at {local_file}")
+        logger.debug(f"ERROR: File not created at {local_file}")
         return {"error": "Failed to save video file"}
 
-    print(f"File confirmed: {local_file} ({os.path.getsize(local_file)} bytes)")
+    logger.debug(f"File confirmed: {local_file} ({os.path.getsize(local_file)} bytes)")
     return _save_and_upload(local_file, local_filename, timestamp)
 
 

@@ -1,3 +1,4 @@
+import logging
 """
 Instagram Posting Helper (via Facebook Graph API)
 """
@@ -8,6 +9,7 @@ from typing import Optional, Tuple
 from dotenv import load_dotenv
 
 from utils.integrations_service import integrations_service
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -29,7 +31,7 @@ def _resolve_ig_legacy_credentials(user_id: Optional[str]) -> Tuple[Optional[str
             credentials = integration.get("credentials", {})
             access_token = credentials.get("accessToken")
             account_id = credentials.get("accountId")
-            print(f"✅ Using Instagram credentials from integrations for user: {user_id}")
+            logger.debug(f"✅ Using Instagram credentials from integrations for user: {user_id}")
             return access_token, account_id
         raise RuntimeError("Instagram integration not configured")
 
@@ -64,13 +66,13 @@ def _poll_container_status(
             status_code = status_data.get("status_code")
 
             if status_code == "FINISHED":
-                print("✅ Video processing complete!")
+                logger.debug("✅ Video processing complete!")
                 return True
 
             if status_code == "ERROR":
                 raise RuntimeError("Video processing failed on Instagram's servers")
 
-            print(f"   Processing... (status: {status_code})")
+            logger.debug(f"   Processing... (status: {status_code})")
 
         time.sleep(2)
 
@@ -90,7 +92,7 @@ def post_video_to_instagram(video_url: str, caption: str, user_id: str = None) -
         dict with success status and details
     """
     try:
-        print("📸 Starting Instagram Reel upload...")
+        logger.debug("📸 Starting Instagram Reel upload...")
 
         # Resolve credentials
         try:
@@ -120,7 +122,7 @@ def post_video_to_instagram(video_url: str, caption: str, user_id: str = None) -
             }
 
         # Step 1: Create media container
-        print("📝 Step 1: Creating media container...")
+        logger.debug("📝 Step 1: Creating media container...")
 
         container_url = f"{GRAPH_API}/{INSTAGRAM_ACCOUNT_ID}/media"
         container_params = {
@@ -146,10 +148,10 @@ def post_video_to_instagram(video_url: str, caption: str, user_id: str = None) -
 
         container_data = container_response.json()
         creation_id = container_data.get("id")
-        print(f"✅ Media container created - ID: {creation_id}")
+        logger.debug(f"✅ Media container created - ID: {creation_id}")
 
         # Step 2: Wait for video processing
-        print("⏳ Step 2: Waiting for video processing...")
+        logger.debug("⏳ Step 2: Waiting for video processing...")
 
         try:
             finished = _poll_container_status(creation_id, ACCESS_TOKEN)
@@ -166,7 +168,7 @@ def post_video_to_instagram(video_url: str, caption: str, user_id: str = None) -
             }
 
         # Step 3: Publish the reel
-        print("📤 Step 3: Publishing reel...")
+        logger.debug("📤 Step 3: Publishing reel...")
 
         publish_url = f"{GRAPH_API}/{INSTAGRAM_ACCOUNT_ID}/media_publish"
         publish_params = {
@@ -188,7 +190,7 @@ def post_video_to_instagram(video_url: str, caption: str, user_id: str = None) -
 
         publish_data = publish_response.json()
         media_id = publish_data.get("id")
-        print(f"🎉 Instagram Reel published successfully! ID: {media_id}")
+        logger.debug(f"🎉 Instagram Reel published successfully! ID: {media_id}")
 
         return {
             "success": True,

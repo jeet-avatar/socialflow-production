@@ -1,3 +1,4 @@
+import logging
 """
 LinkedIn Posting Helper
 """
@@ -5,6 +6,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from utils.integrations_service import integrations_service
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -31,7 +33,7 @@ def _resolve_li_credentials(user_id):
         credentials = integration.get("credentials", {})
         access_token = credentials.get("accessToken")
         person_urn = credentials.get("personUrn")
-        print(f"✅ Using LinkedIn credentials from integrations for user: {user_id}")
+        logger.debug(f"✅ Using LinkedIn credentials from integrations for user: {user_id}")
         return (access_token, person_urn)
 
     return {
@@ -52,11 +54,11 @@ def _classify_li_register_error(response):
         error_status = error_data.get('status', '')
         service_error_code = error_data.get('serviceErrorCode', '')
 
-        print("❌ LinkedIn API Error:")
-        print(f"   Status: {error_status}")
-        print(f"   Message: {error_message}")
-        print(f"   Service Error Code: {service_error_code}")
-        print(f"   Full response: {error_data}")
+        logger.debug("❌ LinkedIn API Error:")
+        logger.debug(f"   Status: {error_status}")
+        logger.debug(f"   Message: {error_message}")
+        logger.debug(f"   Service Error Code: {service_error_code}")
+        logger.debug(f"   Full response: {error_data}")
 
         if "Internal Server Error" in str(error_message) or response.status_code == 500:
             hint = (
@@ -136,7 +138,7 @@ def _create_li_post(headers, person_urn, asset_id, caption, title, linkedin_api)
     post_data = post_response.json()
     post_id = post_data.get("id", "")
 
-    print(f"🎉 LinkedIn post created successfully! ID: {post_id}")
+    logger.debug(f"🎉 LinkedIn post created successfully! ID: {post_id}")
 
     return {
         "success": True,
@@ -160,7 +162,7 @@ def post_video_to_linkedin(video_file_path: str, caption: str, title: str = "AI 
         dict with success status and details
     """
     try:
-        print(f"🔗 Starting LinkedIn video upload for: {video_file_path}")
+        logger.debug(f"🔗 Starting LinkedIn video upload for: {video_file_path}")
 
         creds = _resolve_li_credentials(user_id)
         if isinstance(creds, dict):
@@ -194,7 +196,7 @@ def post_video_to_linkedin(video_file_path: str, caption: str, title: str = "AI 
         }
 
         # Step 1: Register video upload
-        print("📝 Step 1: Registering video upload...")
+        logger.debug("📝 Step 1: Registering video upload...")
         file_size = os.path.getsize(video_file_path)
 
         register_payload = {
@@ -215,8 +217,8 @@ def post_video_to_linkedin(video_file_path: str, caption: str, title: str = "AI 
             timeout=30
         )
 
-        print(f"📊 Register response status: {register_response.status_code}")
-        print(f"📊 Register response headers: {dict(register_response.headers)}")
+        logger.debug(f"📊 Register response status: {register_response.status_code}")
+        logger.debug(f"📊 Register response headers: {dict(register_response.headers)}")
 
         if register_response.status_code != 200:
             return _classify_li_register_error(register_response)
@@ -225,10 +227,10 @@ def post_video_to_linkedin(video_file_path: str, caption: str, title: str = "AI 
         asset_id = register_data["value"]["asset"]
         upload_url = register_data["value"]["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
 
-        print(f"✅ Upload registered - Asset ID: {asset_id}")
+        logger.debug(f"✅ Upload registered - Asset ID: {asset_id}")
 
         # Step 2: Upload video binary
-        print(f"⬆️  Step 2: Uploading video ({file_size / 1024 / 1024:.2f} MB)...")
+        logger.debug(f"⬆️  Step 2: Uploading video ({file_size / 1024 / 1024:.2f} MB)...")
 
         with open(video_file_path, "rb") as f:
             video_data = f.read()
@@ -246,10 +248,10 @@ def post_video_to_linkedin(video_file_path: str, caption: str, title: str = "AI 
                 "error": f"Failed to upload video: {upload_response.text}"
             }
 
-        print("✅ Video uploaded successfully!")
+        logger.debug("✅ Video uploaded successfully!")
 
         # Step 3: Create post with video
-        print("📤 Step 3: Creating LinkedIn post...")
+        logger.debug("📤 Step 3: Creating LinkedIn post...")
         return _create_li_post(headers, person_urn, asset_id, caption, title, LINKEDIN_API)
 
     except requests.exceptions.RequestException as e:

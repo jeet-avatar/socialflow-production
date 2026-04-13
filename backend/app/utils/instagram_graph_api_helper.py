@@ -1,3 +1,4 @@
+import logging
 """
 Instagram Graph API Helper - Official Instagram Business API
 Uses Instagram Graph API for reliable, production-ready posting
@@ -9,6 +10,7 @@ import requests
 from typing import Dict, Any, Optional, Tuple
 
 from utils.integrations_service import integrations_service
+logger = logging.getLogger(__name__)
 
 _UNKNOWN_ERROR = "Unknown error"
 
@@ -25,12 +27,12 @@ def _resolve_instagram_credentials(user_id: Optional[str]) -> Tuple[Optional[str
             credentials = integration.get("credentials", {})
             user_token = credentials.get("accessToken", "").strip()
             instagram_account_id = credentials.get("instagramAccountId", "").strip()
-            print(f"✅ Using Instagram Graph API credentials for user: {user_id}")
+            logger.debug(f"✅ Using Instagram Graph API credentials for user: {user_id}")
             return user_token, instagram_account_id
-        print(f"❌ Instagram integration not configured for user: {user_id}")
+        logger.debug(f"❌ Instagram integration not configured for user: {user_id}")
         return None, None
 
-    print("⚠️  No user_id provided, checking environment variables...")
+    logger.debug("⚠️  No user_id provided, checking environment variables...")
     return os.getenv("INSTAGRAM_ACCESS_TOKEN"), os.getenv("INSTAGRAM_ACCOUNT_ID")
 
 
@@ -52,10 +54,10 @@ def _probe_video(input_path: str, ffmpeg_exe: str) -> dict:
         duration = float(video_stream.get("duration", 0) or 0)
         width = int(video_stream.get("width", 0) or 0)
         height = int(video_stream.get("height", 0) or 0)
-        print(f"🔍 Video probe: {width}x{height}, {duration:.1f}s, audio={has_audio}")
+        logger.debug(f"🔍 Video probe: {width}x{height}, {duration:.1f}s, audio={has_audio}")
         return {"has_audio": has_audio, "duration": duration, "width": width, "height": height}
     except Exception as e:
-        print(f"⚠️  ffprobe failed ({e}), assuming no audio")
+        logger.debug(f"⚠️  ffprobe failed ({e}), assuming no audio")
         return {"has_audio": False, "duration": 0, "width": 0, "height": 0}
 
 
@@ -103,7 +105,7 @@ def _transcode_for_instagram(input_path: str) -> str:
             output_path,
         ]
     else:
-        print("⚠️  No audio track detected — adding silent stereo audio for Instagram Reels")
+        logger.debug("⚠️  No audio track detected — adding silent stereo audio for Instagram Reels")
         cmd = [
             ffmpeg_exe, "-y",
             "-i", input_path,
@@ -119,7 +121,7 @@ def _transcode_for_instagram(input_path: str) -> str:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         if result.returncode != 0:
             raise RuntimeError(f"FFmpeg transcoding failed: {result.stderr[-500:]}")
-        print(f"✅ Transcoded for Instagram (portrait 1080x1920): {output_path}")
+        logger.debug(f"✅ Transcoded for Instagram (portrait 1080x1920): {output_path}")
         success = True
         return output_path
     finally:
@@ -147,14 +149,14 @@ def _upload_to_s3_and_presign(local_path: str) -> str:
     s3 = boto3.client("s3", aws_access_key_id=ak, aws_secret_access_key=sk, region_name=region)
     key = f"videos/ig_upload_{uuid.uuid4().hex}.mp4"
     s3.upload_file(local_path, bucket, key, ExtraArgs={"ContentType": "video/mp4"})
-    print(f"☁️  Uploaded to S3: {key}")
+    logger.debug(f"☁️  Uploaded to S3: {key}")
 
     presigned_url = s3.generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket, "Key": key},
         ExpiresIn=3600,
     )
-    print("✅ Presigned URL generated")
+    logger.debug("✅ Presigned URL generated")
     return presigned_url
 
 
@@ -181,7 +183,7 @@ def _create_container(
         error_data = response.json()
         error_message = error_data.get("error", {}).get("message", _UNKNOWN_ERROR)
         error_code = error_data.get("error", {}).get("code", "N/A")
-        print(f"❌ Failed to create container: {error_message}")
+        logger.debug(f"❌ Failed to create container: {error_message}")
         return None, {
             "success": False,
             "error": f"Failed to create Instagram media container: {error_message}",
@@ -192,7 +194,7 @@ def _create_container(
     creation_id = response.json().get("id")
     if not creation_id:
         return None, {"success": False, "error": "No creation ID returned from Instagram", "platform": "Instagram"}
-    print(f"✅ Container created: {creation_id}")
+    logger.debug(f"✅ Container created: {creation_id}")
     return creation_id, None
 
 
@@ -212,14 +214,14 @@ def _wait_for_processing(
             status_data = status_response.json()
             status_code = status_data.get("status_code")
             status_message = status_data.get("status", "UNKNOWN")
-            print(f"⏳ Attempt {attempt}/{max_attempts}: Status = {status_message}")
+            logger.debug(f"⏳ Attempt {attempt}/{max_attempts}: Status = {status_message}")
             if status_code == "FINISHED":
-                print("✅ Video processing complete!")
+                logger.debug("✅ Video processing complete!")
                 return True
             if status_code == "ERROR":
                 raise RuntimeError(f"Instagram video processing failed: {status_message}")
         else:
-            print(f"⚠️  Status check failed: {status_response.status_code}")
+            logger.debug(f"⚠️  Status check failed: {status_response.status_code}")
 
     return False
 
@@ -246,7 +248,7 @@ def _publish_container(
             "platform": "Instagram",
         }
     media_id: str = response.json().get("id", "")
-    print("🎉 Instagram post published successfully!")
+    logger.debug("🎉 Instagram post published successfully!")
     permalink = _fetch_permalink(media_id, access_token)
     return {
         "success": True,
@@ -269,10 +271,10 @@ def _fetch_permalink(media_id: str, access_token: str) -> Optional[str]:
         )
         if permalink_response.status_code == 200:
             permalink = permalink_response.json().get("permalink")
-            print(f"🔗 Permalink: {permalink}")
+            logger.debug(f"🔗 Permalink: {permalink}")
             return permalink
     except Exception as e:
-        print(f"⚠️  Could not fetch permalink: {e}")
+        logger.debug(f"⚠️  Could not fetch permalink: {e}")
     return None
 
 
@@ -288,7 +290,7 @@ def post_video_to_instagram_graph_api(
     """
     transcode_path = None
     try:
-        print("📸 Starting Instagram upload using Graph API...")
+        logger.debug("📸 Starting Instagram upload using Graph API...")
 
         access_token, instagram_account_id = _resolve_instagram_credentials(user_id)
         if not access_token or not instagram_account_id:
@@ -299,24 +301,24 @@ def post_video_to_instagram_graph_api(
                 "platform": "Instagram",
             }
 
-        print(f"📹 Local file: {local_path}\n📝 Caption: {caption}")
+        logger.debug(f"📹 Local file: {local_path}\n📝 Caption: {caption}")
 
         # Step 1: Transcode to Instagram-compatible format
-        print("\n🔄 Step 1: Transcoding video for Instagram...")
+        logger.debug("\n🔄 Step 1: Transcoding video for Instagram...")
         transcode_path = _transcode_for_instagram(local_path)
 
         # Step 2: Upload to S3 and get presigned URL
-        print("\n🔄 Step 2: Uploading to S3 and generating presigned URL...")
+        logger.debug("\n🔄 Step 2: Uploading to S3 and generating presigned URL...")
         video_url = _upload_to_s3_and_presign(transcode_path)
 
         # Step 3: Create media container
-        print("\n🔄 Step 3: Creating media container...")
+        logger.debug("\n🔄 Step 3: Creating media container...")
         creation_id, container_err = _create_container(video_url, caption, instagram_account_id, access_token)
         if container_err:
             return container_err
 
         # Step 4: Wait for video processing
-        print("\n🔄 Step 4: Waiting for video processing...")
+        logger.debug("\n🔄 Step 4: Waiting for video processing...")
         try:
             finished = _wait_for_processing(creation_id, access_token)
         except RuntimeError as processing_error:
@@ -336,11 +338,11 @@ def post_video_to_instagram_graph_api(
             }
 
         # Step 5: Publish
-        print("\n🔄 Step 5: Publishing to Instagram...")
+        logger.debug("\n🔄 Step 5: Publishing to Instagram...")
         return _publish_container(creation_id, instagram_account_id, access_token)
 
     except requests.exceptions.Timeout:
-        print("❌ Instagram API timeout")
+        logger.debug("❌ Instagram API timeout")
         return {
             "success": False,
             "error": "Instagram API request timed out",
@@ -348,10 +350,10 @@ def post_video_to_instagram_graph_api(
             "platform": "Instagram",
         }
     except requests.exceptions.RequestException as e:
-        print(f"❌ Instagram API request error: {e}")
+        logger.debug(f"❌ Instagram API request error: {e}")
         return {"success": False, "error": f"Instagram API request failed: {str(e)}", "platform": "Instagram"}
     except Exception as e:
-        print(f"❌ Instagram upload error: {e}")
+        logger.debug(f"❌ Instagram upload error: {e}")
         traceback.print_exc()
         return {"success": False, "error": f"Instagram upload failed: {str(e)}", "platform": "Instagram"}
     finally:
