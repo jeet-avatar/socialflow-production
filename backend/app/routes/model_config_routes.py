@@ -76,6 +76,17 @@ def get_default_config(user_id: CurrentUser):
     return _to_doc(doc) if doc else {}
 
 
+@router.get("/providers")
+def list_providers():
+    """Return the complete list of valid provider options — no auth required."""
+    return {
+        "script_models": sorted(SCRIPT_MODELS),
+        "voice_providers": sorted(VOICE_PROVIDERS),
+        "video_bg_providers": sorted(VIDEO_BG_PROVIDERS),
+        "research_providers": sorted(RESEARCH_PROVIDERS),
+    }
+
+
 @router.get("/{channel_id}")
 def get_channel_config(channel_id: str, user_id: CurrentUser):
     """Get channel-specific model config; falls back to user default if not set."""
