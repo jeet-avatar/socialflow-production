@@ -9,16 +9,17 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 01 + 02 + 03.5 complete (all merged to main via PR #1, #2, #3)
-Plan: Wave 1 complete ✅
-Status: PR #3 (enterprise readiness + Phase 03 tests + Seedance Studio) merged 2026-04-13. Main is clean.
-Last activity: 2026-04-13 — API audit complete, PR #3 merged, local main synced to efb2302
+Phase: 04-ai-model-layer (Plan 01 complete ✅)
+Plan: Wave 2 in progress — Phase 04 Plan 01 executed 2026-04-13
+Status: 04-01 COMPLETE. AI pipeline model-agnostic via ModelConfig + resolve_model_config. 26/26 tests pass.
+Last activity: 2026-04-13 — Phase 04-01 executed: provider_config.py, /providers endpoint, 4 call sites wired, useModelConfig hook
 
 Progress: [████████████░░░░░░░░] ~35% (Wave 1 complete, Wave 2 next)
 
 ## Completed Milestones
 
 - Wave 1 (PR #1 + #2 + #3): Infrastructure, DB schema, enterprise readiness, 25 backend tests, Seedance Studio — all merged to main.
+- Phase 04 Plan 01: AI model layer — ModelConfig dataclass, resolve_model_config(), GET /providers, 4 call sites wired, useModelConfig hook, 4 tests passing.
 
 ## Performance Metrics
 
@@ -43,6 +44,10 @@ Progress: [████████████░░░░░░░░] ~35% (W
 - [2026-04-12]: ArthaBuild rules apply — no approval gates, autonomous execution, 60% context = new window.
 - [2026-04-12]: Auth: Clerk is active auth. Auth0 code is dead — remove it in Phase 02.
 - [2026-04-12]: S3 bucket: `d2nbx2qjod9qta.cloudfront.net` (CloudFront) for video storage
+- [2026-04-13]: API keys always from env vars in ModelConfig — never from DB doc (credential safety)
+- [2026-04-13]: resolve_model_config() wraps DB access in try/except — DB unavailable must not crash AI pipeline
+- [2026-04-13]: /providers route registered before /{channel_id} — FastAPI routes literal strings before path params
+- [2026-04-13]: research_provider wiring deferred to phase-08 — TODO comment added in content_routes.py
 
 ### Pending Todos
 
@@ -56,5 +61,5 @@ Progress: [████████████░░░░░░░░] ~35% (W
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Wave 1 fully merged. Ready for Wave 2 (Phase 04+).
+Stopped at: Completed Phase 04 Plan 01 (AI model layer — ModelConfig + resolve_model_config + /providers + useModelConfig hook)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md

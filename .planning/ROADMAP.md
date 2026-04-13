@@ -39,7 +39,7 @@
 
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
-| 04 | AI Model Layer | Model-agnostic provider interface (script/voice/video/research) | Planning |
+| 04 | AI Model Layer | Model-agnostic provider interface (script/voice/video/research) | Done |
 | 05 | Celery Workers | Async video generation pipeline, queue management, retry logic | Backlog |
 | 06 | Shorts + TikTok | Remotion 9:16 composition, TikTok Content Posting API v2 | Backlog |
 | 07 | UI/UX Redesign | Channel dashboard, pipeline builder, model picker | Backlog |
@@ -53,7 +53,7 @@
 **Plans:** 1 plan
 
 Plans:
-- [ ] 04-01-PLAN.md — provider_config.py resolver + /providers endpoint + wire 4 call sites + useModelConfig hook + tests
+- [x] 04-01-PLAN.md — provider_config.py resolver + /providers endpoint + wire 4 call sites + useModelConfig hook + tests (COMPLETE 2026-04-13, commits a5d66ec + a46661e + b6819e0, 26/26 tests passing)
 
 ---
 
