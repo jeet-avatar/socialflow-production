@@ -64,14 +64,27 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 FRONTEND_BUILD_DIR = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
 # Configure CORS
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = ["*"] if allowed_origins_str == "*" else allowed_origins_str.split(",")
+_env = os.getenv("ENVIRONMENT", "development")
+_allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
+if _env == "production":
+    if not _allowed_origins_str or _allowed_origins_str.strip() == "*":
+        raise RuntimeError(
+            "ALLOWED_ORIGINS must be set to explicit origins in production. "
+            "Wildcard '*' is not permitted."
+        )
+    _allowed_origins = [o.strip() for o in _allowed_origins_str.split(",") if o.strip()]
+else:
+    _allowed_origins = (
+        [o.strip() for o in _allowed_origins_str.split(",") if o.strip()]
+        if _allowed_origins_str and _allowed_origins_str.strip() != "*"
+        else ["http://localhost:5173", "http://localhost:3000"]
+    )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
