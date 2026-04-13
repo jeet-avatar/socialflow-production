@@ -40,6 +40,7 @@ import OnboardingTour from './OnboardingTour';
 import WelcomeModal from './WelcomeModal';
 import ChatBot from './ChatBot';
 import VideoStudio from './videostudio/VideoStudio';
+import SeedanceStudio from './SeedanceStudio';
 import CreditRating from './CreditRating';
 import Leads from './Leads';
 import UserProfile from './UserProfile';
@@ -802,8 +803,9 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
                 { id: 'dashboard',        icon: Home,      label: 'Dashboard'         },
                 { id: 'leads',            icon: UserCheck, label: 'Leads'             },
                 { id: 'company-analysis', icon: Building2, label: 'Company Analysis'  },
-                { id: 'video-studio',     icon: Video,     label: 'Video Studio'      },
-                { id: 'profile',          icon: User,      label: 'Profile'           },
+                { id: 'video-studio',     icon: Video,      label: 'Video Studio'      },
+                { id: 'seedance-studio',  icon: Sparkles,   label: 'Seedance Studio'   },
+                { id: 'profile',          icon: User,       label: 'Profile'           },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -996,8 +998,13 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
           <VideoStudio isActive={activeTab === 'video-studio'} />
         </div>
 
+        {/* Seedance Studio — full viewport, always mounted to preserve state */}
+        <div style={{ display: activeTab === 'seedance-studio' ? 'block' : 'none' }} className="h-[calc(100vh-73px)] overflow-y-auto">
+          <SeedanceStudio />
+        </div>
+
         {/* Page Content — all other tabs */}
-        {activeTab !== 'video-studio' && (
+        {activeTab !== 'video-studio' && activeTab !== 'seedance-studio' && (
           <main ref={mainRef} className="px-8 py-6 min-h-screen max-w-[1600px] mx-auto">
             <div style={{ display: activeTab === 'dashboard'        ? 'block' : 'none' }}>{renderDashboardContent()}</div>
             <div style={{ display: activeTab === 'company-analysis' ? 'block' : 'none' }}><CreditRating prefillQuery={analysisQuery} /></div>
@@ -1018,7 +1025,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
           </main>
         )}
 
-        {activeTab !== 'video-studio' && <Footer onNavigate={handleNavigate} />}
+        {activeTab !== 'video-studio' && activeTab !== 'seedance-studio' && <Footer onNavigate={handleNavigate} />}
       </div>
 
       {/* ── Guide Me Video Modal ── */}

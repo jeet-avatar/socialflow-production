@@ -25,6 +25,16 @@
 
 ---
 
+## Wave 1.5 — Seedance Studio (shipped)
+
+| Phase | Name | Goal | Status |
+|-------|------|------|--------|
+| 03.5 | Seedance Studio | Higgsfield Seedance 2.0 prompt generator in dashboard — 15 styles, Claude-powered, copy-to-paste | Done |
+
+**Note:** Phase B (full Higgsfield API loop — auto-generate + store video) is a future enhancement tracked as backlog.
+
+---
+
 ## Wave 2 — Core Features (Parallel)
 
 | Phase | Name | Goal | Status |
