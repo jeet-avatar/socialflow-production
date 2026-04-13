@@ -428,6 +428,6 @@ if __name__ == "__main__":
     sample_url = "https://www.linkedin.com/company/tech-cloud-pro/"
     test_user_id = "test-user-123"
     package = generate_marketing_package_from_linkedin(sample_url, test_user_id)
-    print(json.dumps({"marketing_package": package}, indent=2))
+    logger.debug(json.dumps({"marketing_package": package}, indent=2))
     video_result = generate_video_for_package(package)
-    print(json.dumps({"video_result": video_result}, indent=2))
+    logger.debug(json.dumps({"video_result": video_result}, indent=2))

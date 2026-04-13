@@ -1,3 +1,4 @@
+import logging
 """
 Instagram Posting Helper - Uses proven instagrapi implementation
 """
@@ -6,6 +7,7 @@ import traceback
 from typing import Any, Dict, Optional, Tuple, Union
 from dotenv import load_dotenv
 from utils.integrations_service import integrations_service
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -26,14 +28,14 @@ def _resolve_instagrapi_credentials(user_id: Optional[str]) -> Tuple[Optional[st
             credentials = integration.get("credentials", {})
             username = credentials.get("username")
             password = credentials.get("password")
-            print(f"✅ Using Instagram credentials from integrations for user: {user_id}")
+            logger.debug(f"✅ Using Instagram credentials from integrations for user: {user_id}")
             return username, password
         # No fallback — require proper configuration
-        print(f"❌ Instagram integration not configured for user: {user_id}")
+        logger.debug(f"❌ Instagram integration not configured for user: {user_id}")
         return None, None
 
     # No user_id provided — check environment variables only
-    print("⚠️  No user_id provided, checking environment variables...")
+    logger.debug("⚠️  No user_id provided, checking environment variables...")
     return os.getenv("INSTAGRAM_USERNAME"), os.getenv("INSTAGRAM_PASSWORD")
 
 
@@ -61,7 +63,7 @@ def _validate_video_duration(video_file_path: str, post_type: str) -> Union[floa
         duration = video_clip.duration
         video_clip.close()
 
-        print(f"📹 Video duration: {duration:.2f} seconds")
+        logger.debug(f"📹 Video duration: {duration:.2f} seconds")
 
         if duration < 3:
             return {"_error": True, "success": False,
@@ -79,17 +81,17 @@ def _validate_video_duration(video_file_path: str, post_type: str) -> Union[floa
                     "duration": duration}
 
         if post_type == "reel":
-            print(f"✅ Video duration {duration:.2f}s - uploading as Instagram Reel.")
+            logger.debug(f"✅ Video duration {duration:.2f}s - uploading as Instagram Reel.")
         elif post_type == "feed":
             if duration > 60:
-                print(f"⚠️  Video is {duration:.2f}s (> 60s). Will use IGTV upload for longer videos.")
+                logger.debug(f"⚠️  Video is {duration:.2f}s (> 60s). Will use IGTV upload for longer videos.")
             else:
-                print(f"✅ Video duration {duration:.2f}s - uploading as regular feed post.")
+                logger.debug(f"✅ Video duration {duration:.2f}s - uploading as regular feed post.")
 
         return duration
 
     except Exception as duration_error:
-        print(f"⚠️  Could not check video duration: {duration_error}")
+        logger.debug(f"⚠️  Could not check video duration: {duration_error}")
         return None
 
 
@@ -104,26 +106,26 @@ def _upload_feed_video(cl, video_file_path: str, caption: str, duration: Optiona
         instagrapi media object on success.
     """
     if duration and duration > 60:
-        print(f"📹 Video is {duration:.2f}s (> 60s). Using IGTV upload for longer video...")
+        logger.debug(f"📹 Video is {duration:.2f}s (> 60s). Using IGTV upload for longer video...")
         try:
             media = cl.igtv_upload(
                 path=video_file_path,
                 title=caption[:100] if caption else "Video Post",
                 caption=caption
             )
-            print("🎉 Instagram IGTV video uploaded successfully!")
+            logger.debug("🎉 Instagram IGTV video uploaded successfully!")
             return media
         except Exception as igtv_error:
-            print(f"⚠️  IGTV upload failed: {igtv_error}")
-            print("⚠️  Falling back to regular video upload...")
+            logger.debug(f"⚠️  IGTV upload failed: {igtv_error}")
+            logger.debug("⚠️  Falling back to regular video upload...")
 
-    print("📹 Uploading as regular Instagram feed post...")
+    logger.debug("📹 Uploading as regular Instagram feed post...")
     media = cl.video_upload(
         path=video_file_path,
         caption=caption,
         thumbnail=None
     )
-    print("🎉 Instagram feed post uploaded successfully!")
+    logger.debug("🎉 Instagram feed post uploaded successfully!")
     return media
 
 
@@ -174,7 +176,7 @@ def post_video_to_instagram_instagrapi(video_file_path: str, caption: str, user_
     try:
         from instagrapi import Client
 
-        print("📸 Starting Instagram upload using instagrapi...")
+        logger.debug("📸 Starting Instagram upload using instagrapi...")
 
         # Resolve credentials
         username, password = _resolve_instagrapi_credentials(user_id)
@@ -204,23 +206,23 @@ def post_video_to_instagram_instagrapi(video_file_path: str, caption: str, user_
         duration = duration_result  # float or None
 
         # Login
-        print("🔐 Logging into Instagram...")
+        logger.debug("🔐 Logging into Instagram...")
         cl = Client()
         cl.login(username, password)
-        print("✅ Logged in successfully!")
+        logger.debug("✅ Logged in successfully!")
 
         # Upload
-        print(f"⏫ Uploading video: {video_file_path}")
-        print(f"📝 Caption: {caption}")
-        print(f"📱 Post Type: {post_type}")
+        logger.debug(f"⏫ Uploading video: {video_file_path}")
+        logger.debug(f"📝 Caption: {caption}")
+        logger.debug(f"📱 Post Type: {post_type}")
         if duration:
-            print(f"📏 Video Duration: {duration:.2f} seconds")
+            logger.debug(f"📏 Video Duration: {duration:.2f} seconds")
 
         try:
             if post_type == "reel":
-                print("📸 Uploading as Instagram Reel (clip format)...")
+                logger.debug("📸 Uploading as Instagram Reel (clip format)...")
                 media = cl.clip_upload(path=video_file_path, caption=caption)
-                print("🎉 Instagram Reel uploaded successfully!")
+                logger.debug("🎉 Instagram Reel uploaded successfully!")
             else:
                 media = _upload_feed_video(cl, video_file_path, caption, duration)
 
@@ -241,7 +243,7 @@ def post_video_to_instagram_instagrapi(video_file_path: str, caption: str, user_
 
             # Handle validation errors gracefully (instagrapi sometimes throws these even on success)
             if "validation errors for Media" in error_str:
-                print("⚠️ Video uploaded successfully but encountered a minor validation error.")
+                logger.debug("⚠️ Video uploaded successfully but encountered a minor validation error.")
                 return {
                     "success": True,
                     "message": "Video uploaded successfully (with minor validation warning)",
@@ -263,7 +265,7 @@ def post_video_to_instagram_instagrapi(video_file_path: str, caption: str, user_
             raise upload_error
 
     except Exception as e:
-        print(f"❌ Instagram upload error: {e}")
+        logger.debug(f"❌ Instagram upload error: {e}")
         traceback.print_exc()
         return {
             "success": False,

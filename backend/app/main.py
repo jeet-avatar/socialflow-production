@@ -14,6 +14,9 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'), override=True)
 
+from utils.secrets import init_secrets
+init_secrets()
+
 # ── API key presence check (startup only) ───────────────────────────────────
 _startup_logger = logging.getLogger("startup")
 for _key in ("ANTHROPIC_API_KEY", "GOOGLE_AI_API_KEY", "OPENAI_API_KEY", "FAL_API_KEY"):
@@ -48,6 +51,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Rate limiting
+from slowapi import SlowAPIMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIASGIMiddleware
+from utils.rate_limiter import limiter
+app.state.limiter = limiter
+app.add_middleware(SlowAPIASGIMiddleware)
+
 # Ensure static directory exists before mounting
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -56,14 +67,27 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 FRONTEND_BUILD_DIR = Path(__file__).parent.parent.parent / "frontend" / "dist"
 
 # Configure CORS
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = ["*"] if allowed_origins_str == "*" else allowed_origins_str.split(",")
+_env = os.getenv("ENVIRONMENT", "development")
+_allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
+if _env == "production":
+    if not _allowed_origins_str or _allowed_origins_str.strip() == "*":
+        raise RuntimeError(
+            "ALLOWED_ORIGINS must be set to explicit origins in production. "
+            "Wildcard '*' is not permitted."
+        )
+    _allowed_origins = [o.strip() for o in _allowed_origins_str.split(",") if o.strip()]
+else:
+    _allowed_origins = (
+        [o.strip() for o in _allowed_origins_str.split(",") if o.strip()]
+        if _allowed_origins_str and _allowed_origins_str.strip() != "*"
+        else ["http://localhost:5173", "http://localhost:3000"]
+    )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

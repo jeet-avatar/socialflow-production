@@ -29,19 +29,19 @@ def _resolve_yt_credentials(user_id):
     cannot be resolved.
     """
     if not user_id:
-        print("❌ No user_id provided")
+        logger.debug("❌ No user_id provided")
         return {
             "success": False,
             "error": "User ID required",
             "hint": "Authentication required"
         }
 
-    print(f"🔍 DEBUG: user_id = {user_id}")
+    logger.debug(f"🔍 DEBUG: user_id = {user_id}")
     integration = integrations_service.get_integration(user_id, "youtube", decrypt=True)
-    print(f"🔍 DEBUG: integration = {integration}")
+    logger.debug(f"🔍 DEBUG: integration found for user_id={user_id}: {bool(integration)}")
 
     if not integration or not integration.get('credentials'):
-        print(f"⚠️  No YouTube integration found for user {user_id}")
+        logger.debug(f"⚠️  No YouTube integration found for user {user_id}")
         return {
             "success": False,
             "error": "YouTube not configured",
@@ -61,13 +61,13 @@ def _build_yt_oauth_creds(credentials):
     client_id = credentials.get('clientId')
     client_secret = credentials.get('clientSecret')
 
-    print("✅ Building YouTube OAuth credentials")
-    print(f"🔍 DEBUG: client_id = {client_id[:20] if client_id else 'None'}...")
-    print(f"🔍 DEBUG: client_secret = {client_secret[:20] if client_secret else 'None'}...")
-    print(f"🔍 DEBUG: refresh_token = {refresh_token[:20] if refresh_token else 'None (will authorize)'}...")
+    logger.debug("✅ Building YouTube OAuth credentials")
+    logger.debug("🔍 DEBUG: client_id is %s", "configured" if client_id else "missing")
+    logger.debug("🔍 DEBUG: client_secret is %s", "configured" if client_secret else "missing")
+    logger.debug("🔍 DEBUG: refresh_token is %s", "configured" if refresh_token else "missing")
 
     if not client_id or not client_secret:
-        print("❌ YouTube client ID or secret missing")
+        logger.debug("❌ YouTube client ID or secret missing")
         return (None, {
             "success": False,
             "error": "YouTube client ID or secret not configured",
@@ -75,7 +75,7 @@ def _build_yt_oauth_creds(credentials):
         })
 
     if not refresh_token:
-        print("⚠️  No refresh token found - OAuth flow required")
+        logger.debug("⚠️  No refresh token found - OAuth flow required")
         return (None, {
             "success": False,
             "error": "YouTube authorization required",
@@ -83,7 +83,7 @@ def _build_yt_oauth_creds(credentials):
             "requires_oauth": True
         })
 
-    print("🔄 Using stored refresh token")
+    logger.debug("🔄 Using stored refresh token")
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
@@ -95,10 +95,10 @@ def _build_yt_oauth_creds(credentials):
 
     try:
         creds.refresh(Request())
-        print("✅ YouTube access token refreshed successfully")
+        logger.debug("✅ YouTube access token refreshed successfully")
         return (creds, None)
     except Exception as e:
-        print(f"❌ Failed to refresh YouTube token: {e}")
+        logger.debug(f"❌ Failed to refresh YouTube token: {e}")
         return (None, {
             "success": False,
             "error": f"Failed to refresh YouTube token: {str(e)}",
@@ -137,9 +137,9 @@ def _handle_chunk_response(response):
     if 'id' in response:
         video_id = response['id']
         video_url = f"https://www.youtube.com/watch?v={video_id}"
-        print("✅ Video uploaded successfully!")
-        print(f"   Video ID: {video_id}")
-        print(f"   URL: {video_url}")
+        logger.debug("✅ Video uploaded successfully!")
+        logger.debug(f"   Video ID: {video_id}")
+        logger.debug(f"   URL: {video_url}")
         return {
             "success": True,
             "video_id": video_id,
@@ -163,7 +163,7 @@ def _handle_http_error_retry(e, retry_count, max_retries):
     if e.resp.status not in [500, 502, 503, 504]:
         raise
     retry_count += 1
-    print(f"⚠️  Retriable error (attempt {retry_count}/{max_retries}): {e}")
+    logger.debug(f"⚠️  Retriable error (attempt {retry_count}/{max_retries}): {e}")
     if retry_count >= max_retries:
         return retry_count, {
             "success": False,
@@ -211,7 +211,7 @@ def post_video_to_youtube(video_file_path: str, title: str, description: str, us
         dict with success status and details
     """
 
-    print(f"📺 Starting YouTube upload for: {video_file_path}")
+    logger.debug(f"📺 Starting YouTube upload for: {video_file_path}")
 
     raw_creds = _resolve_yt_credentials(user_id)
     if isinstance(raw_creds, dict) and raw_creds.get("success") is False:
@@ -242,9 +242,9 @@ def post_video_to_youtube(video_file_path: str, title: str, description: str, us
             }
         }
 
-        print("📤 Uploading video to YouTube...")
-        print(f"   Title: {title}")
-        print(f"   File size: {os.path.getsize(video_file_path) / 1024 / 1024:.2f} MB")
+        logger.debug("📤 Uploading video to YouTube...")
+        logger.debug(f"   Title: {title}")
+        logger.debug(f"   File size: {os.path.getsize(video_file_path) / 1024 / 1024:.2f} MB")
 
         media = MediaFileUpload(
             video_file_path,
@@ -263,11 +263,11 @@ def post_video_to_youtube(video_file_path: str, title: str, description: str, us
 
     except HttpError as e:
         error_msg = str(e)
-        print(f"❌ YouTube API error: {error_msg}")
+        logger.debug(f"❌ YouTube API error: {error_msg}")
         return _classify_http_error(error_msg)
 
     except Exception as e:
-        print(f"❌ YouTube upload error: {e}")
+        logger.debug(f"❌ YouTube upload error: {e}")
         traceback.print_exc()
         return {
             "success": False,

@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md
 
 **Core value:** Faceless content creators run automated YouTube/social channels without appearing on camera
-**Current focus:** Wave 1 Foundation — Phases 01/02/03 running in parallel
+**Current focus:** Wave 1 Foundation — Phase 01 + 02 PRs open, Phase 03 (tests) next
 
 ## Current Position
 
-Phase: 01, 02, 03 (Wave 1 — parallel)
-Plan: 0 of 3 complete (not yet started)
-Status: Plans created. Ready to execute Wave 1.
-Last activity: 2026-04-12 — GSD structure initialized, Wave 1 plan written, ready to execute
+Phase: 01 + 02 complete (PRs open), Phase 03 pending (blocked on merge)
+Plan: 2 of 3 complete (Wave 1)
+Status: Phase 01 PR #1 open (10 commits), Phase 02 PR #2 open (5 commits). Both reviewed and code issues addressed.
+Last activity: 2026-04-12 — Phase 01 + 02 fully executed, code review fixes applied, PRs open
 
-Progress: [..........] 0% (0/10 phases)
+Progress: [##########] 20% (2/10 phases — PRs pending merge)
 
 ## Completed Milestones
 

@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 
 from models.video_model import VideoCreateRequest, VideoUpdateRequest, VideoAnalyticsUpdate
 from utils.middleware.auth_middleware import auth_middleware
+from utils.s3_service import delete_s3_object
 from utils.subscription_service import subscription_service
 from utils.videos_service import videos_service
 
@@ -344,20 +345,20 @@ async def download_video_proxy(video_id: str, user_id: CurrentUser):
 
 @router.delete("/{video_id}", response_model=dict, responses=_R_404_500)
 async def delete_video(video_id: str, user_id: CurrentUser):
-    """Delete video metadata for the authenticated user. S3 cleanup must be done separately."""
+    """Delete a video: fetch record, delete from S3 (non-fatal), then delete from DB."""
     try:
+        # Step 1: fetch record to get S3 info before deleting
         result = videos_service.delete_video(video_id, user_id)
         if not result['success']:
             raise HTTPException(status_code=404, detail=_VIDEO_NOT_FOUND)
-        return {
-            "success": True,
-            "message": "Video metadata deleted successfully",
-            "s3_cleanup_needed": {
-                "bucket": result.get('s3_bucket'),
-                "key": result.get('s3_key'),
-                "url": result.get('video_url'),
-            },
-        }
+
+        # Step 2: delete from S3 (non-fatal — DB delete already succeeded)
+        s3_deleted = delete_s3_object(
+            result.get('s3_bucket', ''),
+            result.get('s3_key', ''),
+        )
+
+        return {"success": True, "s3_deleted": s3_deleted}
     except HTTPException:
         raise
     except Exception as e:
