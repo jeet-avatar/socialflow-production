@@ -34,6 +34,7 @@ from routes.user_routes import router as user_router
 from routes.chat_routes import router as chat_router
 
 # Import services for startup
+from utils.db_init import init_collections
 from utils.integrations_service import integrations_service
 from utils.mongodb_service import mongodb_service
 
@@ -97,6 +98,10 @@ async def startup_event():
                 timeout=10.0
             )
             logger.info("✅ MongoDB connected successfully")
+
+            # Initialize new collections + indexes
+            db = mongodb_service.get_database()
+            init_collections(db)
 
             # Then initialize integrations service
             await asyncio.wait_for(
