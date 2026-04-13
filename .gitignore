@@ -107,3 +107,4 @@ frontend/dist/
 # Vite dev cache
 .vite/
 frontend/.vite/
+docker-compose.override.yml
