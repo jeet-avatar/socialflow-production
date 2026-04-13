@@ -5,20 +5,20 @@
 See: .planning/PROJECT.md
 
 **Core value:** Faceless content creators run automated YouTube/social channels without appearing on camera
-**Current focus:** Wave 1 Foundation — Phase 01 + 02 PRs open, Phase 03 (tests) next
+**Current focus:** Wave 2 — Phase 04+ (next phase to plan/execute after Wave 1 complete)
 
 ## Current Position
 
-Phase: 01 + 02 complete (PRs open), Phase 03 pending (blocked on merge)
-Plan: 2 of 3 complete (Wave 1)
-Status: Phase 01 PR #1 open (10 commits), Phase 02 PR #2 open (5 commits). Both reviewed and code issues addressed.
-Last activity: 2026-04-12 — Phase 01 + 02 fully executed, code review fixes applied, PRs open
+Phase: 01 + 02 + 03.5 complete (all merged to main via PR #1, #2, #3)
+Plan: Wave 1 complete ✅
+Status: PR #3 (enterprise readiness + Phase 03 tests + Seedance Studio) merged 2026-04-13. Main is clean.
+Last activity: 2026-04-13 — API audit complete, PR #3 merged, local main synced to efb2302
 
-Progress: [##########] 20% (2/10 phases — PRs pending merge)
+Progress: [████████████░░░░░░░░] ~35% (Wave 1 complete, Wave 2 next)
 
 ## Completed Milestones
 
-None yet — this is a fresh project setup.
+- Wave 1 (PR #1 + #2 + #3): Infrastructure, DB schema, enterprise readiness, 25 backend tests, Seedance Studio — all merged to main.
 
 ## Performance Metrics
 
@@ -46,15 +46,15 @@ None yet — this is a fresh project setup.
 
 ### Pending Todos
 
-None yet.
+- Phase B (backlog): Wire Higgsfield API directly for auto video generation → store in S3. In ROADMAP.md backlog.
 
 ### Blockers/Concerns
 
-- `/tmp/sf-prod/` is local only — needs `git push origin main` after Wave 1 completes
-- No MONGODB_URI, JWT_SECRET_KEY, or other secrets in local env — tests must use mocks or test containers
+- No MONGODB_URI, JWT_SECRET_KEY, or other secrets in local env — tests use mocks/mongomock (by design)
+- 54-call frontend API audit complete: all routes verified. video-remotion + social posting routes confirmed.
 
 ## Session Continuity
 
-Last session: 2026-04-12
-Stopped at: GSD structure created, ready to execute Phase 01 + 02 + 03 in parallel
-Resume file: ~/.claude/handoffs/2026-04-12-socialflow-enterprise-brainstorm.md
+Last session: 2026-04-13
+Stopped at: Wave 1 fully merged. Ready for Wave 2 (Phase 04+).
+Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
