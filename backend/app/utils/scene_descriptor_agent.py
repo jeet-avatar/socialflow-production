@@ -177,6 +177,7 @@ def generate_video_concept(
     dialogue: str,
     segments: List[Dict[str, Any]],
     company_name: Optional[str] = None,
+    model_name: str = "claude-sonnet-4-6",   # NEW — was hardcoded at line 207
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], str, Dict[str, Any]]:
     """
     Call GPT-4o-mini to pick templates + write headlines for each scene group.
@@ -204,7 +205,7 @@ def generate_video_concept(
 
         logger.info(f"[VideoDirector] Calling Claude — {len(segments)} segment(s)...")
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=model_name,
             max_tokens=3000,
             system=SYSTEM_PROMPT,
             messages=[

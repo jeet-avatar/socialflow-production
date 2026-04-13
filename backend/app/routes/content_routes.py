@@ -34,6 +34,7 @@ from utils.personalised_message import (
     generate_intelligent_prompt_from_company_data,
     generate_marketing_package,
 )
+from utils.provider_config import ModelConfig, resolve_model_config
 from utils.scene_descriptor_agent import generate_video_concept, build_user_message, SYSTEM_PROMPT
 from utils.subscription_service import subscription_service
 from utils.user_service import user_service
@@ -1131,7 +1132,8 @@ def _fill_segment_gaps(subtitle_segments: list, voiceover_duration: float) -> li
 
 
 def _run_video_director_agent(
-    dialogue: str, subtitle_segments: list, company_name: str, log_prefix: str
+    dialogue: str, subtitle_segments: list, company_name: str, log_prefix: str,
+    model_name: str = "claude-sonnet-4-6",   # NEW
 ) -> tuple:
     """
     Run the GPT-4 Video Director agent.
@@ -1145,6 +1147,7 @@ def _run_video_director_agent(
             dialogue=dialogue,
             segments=subtitle_segments,
             company_name=company_name or None,
+            model_name=model_name,   # NEW — was omitted, defaulted to claude-sonnet-4-6 hardcoded
         )
         logger.info(f"{log_prefix} Video concept: '{video_concept}' — {len(scene_descriptors)} scenes")
         return scene_descriptors, subtitle_segments, video_concept, video_style, agent_system_prompt, agent_user_message
@@ -1647,12 +1650,16 @@ async def generate_company_info(
     if not prompt and not company_name:
         return {"error": "Either prompt or company_name is required"}
 
+    # Resolve per-channel model config
+    channel_id = body.get("channel_id")   # optional — None = user-level config
+    cfg = resolve_model_config(user_id or "", channel_id)
+
     try:
         # If company_name is provided, use intelligent prompt generation
         if company_name:
-            result = generate_intelligent_prompt_from_company_data(company_name, user_id=user_id, sender_mode=sender_mode, target_duration=target_duration)
+            result = generate_intelligent_prompt_from_company_data(company_name, user_id=user_id, sender_mode=sender_mode, target_duration=target_duration, model_name=cfg.script_model)
         else:
-            result = generate_marketing_package(prompt, user_id, sender_mode, target_duration)
+            result = generate_marketing_package(prompt, user_id, sender_mode, target_duration, cfg.script_model)
 
         if "error" in result:
             return {"error": result["error"]}
@@ -1989,6 +1996,20 @@ async def analyze_video_remotion_endpoint(request: Request, user_info: CurrentUs
         user_email = user_info.get('email', 'unknown')
         logger.info(f"{_LOG_ANALYZE} Analyze request from: {user_email}, company: {company_name}, target_duration={target_duration}")
 
+        # ── Resolve model config from saved channel/user preferences ────────
+        channel_id = body.get("channel_id")   # optional — None = user-level config
+        cfg = resolve_model_config(user_id, channel_id)
+
+        # Guard: unimplemented script providers
+        if cfg.script_model == "gemini-2.0-flash":
+            raise HTTPException(status_code=501, detail="gemini-2.0-flash not yet implemented — select claude-sonnet-4-6 or gpt-4o")
+
+        # Guard: unimplemented voice providers
+        if cfg.voice_provider not in ("elevenlabs",):
+            raise HTTPException(status_code=501, detail=f"Voice provider '{cfg.voice_provider}' not yet implemented")
+
+        # TODO(phase-08): wire cfg.research_provider when /research endpoint is implemented
+
         if not dialogue:
             return {"error": _DIALOGUE_REQUIRED}
 
@@ -2002,8 +2023,10 @@ async def analyze_video_remotion_endpoint(request: Request, user_info: CurrentUs
         )
 
         # ── Generate voiceover ─────────────────────────────────────────────
-        logger.info(f"{_LOG_ANALYZE} Generating voiceover with voice_id='{voice_id}'")
-        audio_bytes = _generate_voiceover_bytes(dialogue, _LOG_ANALYZE, voice_id)
+        # Request body voice_id wins if non-empty; saved config is fallback
+        effective_voice_id = body.get("voice_id") or cfg.voice_id
+        logger.info(f"{_LOG_ANALYZE} Generating voiceover with voice_id='{effective_voice_id}'")
+        audio_bytes = _generate_voiceover_bytes(dialogue, _LOG_ANALYZE, effective_voice_id)
         tmp_audio_path = await _write_temp_mp3(audio_bytes)
         logger.info(f"{_LOG_ANALYZE} Voiceover saved to: {tmp_audio_path}")
 
@@ -2043,7 +2066,7 @@ async def analyze_video_remotion_endpoint(request: Request, user_info: CurrentUs
         # ── Video Director Agent (GPT-4) ───────────────────────────────────
         logger.info(f"{_LOG_ANALYZE} Running Video Director agent...")
         scene_descriptors, subtitle_segments, video_concept, video_style, agent_system_prompt, agent_user_message = \
-            _run_video_director_agent(dialogue, subtitle_segments, company_name, _LOG_ANALYZE)
+            _run_video_director_agent(dialogue, subtitle_segments, company_name, _LOG_ANALYZE, model_name=cfg.script_model)
         subtitle_segments = _fill_segment_gaps(subtitle_segments, voiceover_duration_seconds)
 
         # ── Inject video_prompt per scene (pre-fills AI prompt editor) ────────
@@ -2189,6 +2212,12 @@ async def generate_video_remotion_endpoint(request: Request, user_info: CurrentU
         user_id: str = user_info.get('user_id') or ""
         logger.info(f"{_LOG_REMOTION} Video request from: {user_info.get('email', 'unknown')}, company: {company_name}, use_veo3={use_veo3}")
 
+        # Resolve per-channel model config
+        channel_id = body.get("channel_id")   # optional — None = user-level config
+        cfg = resolve_model_config(user_id, channel_id)
+        # Request body fal_model wins if non-empty; video_bg_provider config as fallback
+        effective_fal_model = body.get("fal_model") or cfg.fal_model_id
+
         if not dialogue:
             return {"error": _DIALOGUE_REQUIRED}
 
@@ -2216,12 +2245,21 @@ async def generate_video_remotion_endpoint(request: Request, user_info: CurrentU
 
         # ── Enrich scenes (brand color + news hook + Veo3/DALL-E) ────────────
         _set_progress(job_id, 55, "Generating backgrounds", "0 scenes done")
-        scene_descriptors = _enrich_scene_descriptors_for_remotion(
-            scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
-            job_id=job_id, use_veo3=use_veo3,
-            dialogue=dialogue, sender_name=sender_name,
-            fal_model=fal_model, clip_duration=clip_duration,
-        )
+        # dalle3 provider: route to DALL-E backgrounds (use_veo3=False, fal_model="dalle")
+        if cfg.video_bg_provider == "dalle3" and not body.get("fal_model"):
+            scene_descriptors = _enrich_scene_descriptors_for_remotion(
+                scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
+                job_id=job_id, use_veo3=False,
+                dialogue=dialogue, sender_name=sender_name,
+                fal_model="dalle", clip_duration=clip_duration,
+            )
+        else:
+            scene_descriptors = _enrich_scene_descriptors_for_remotion(
+                scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
+                job_id=job_id, use_veo3=use_veo3,
+                dialogue=dialogue, sender_name=sender_name,
+                fal_model=effective_fal_model, clip_duration=clip_duration,
+            )
 
         # If AI video failed, expand to 3 DALL-E scenes
         ai_succeeded = bool(scene_descriptors and scene_descriptors[0].get("background_video_url"))

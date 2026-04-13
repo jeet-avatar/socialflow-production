@@ -6,7 +6,6 @@ import anthropic
 from scripts.linkedin_scrapper_company import extract_company_info
 
 logger = logging.getLogger(__name__)
-claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
 DEFAULT_COMPANY = "our company"
 _NEWS_RAPID_HIRING = "Rapid Hiring"
@@ -172,7 +171,7 @@ Return output strictly as JSON with keys: video_title, video_dialogue, social_ca
     Return output strictly as JSON with keys: video_title, video_dialogue, social_caption."""
 
 
-def generate_marketing_package(prompt: str, user_id: str, sender_mode: str = 'personal', target_duration: str = 'short') -> dict:
+def generate_marketing_package(prompt: str, user_id: str, sender_mode: str = 'personal', target_duration: str = 'short', model_name: str = "claude-sonnet-4-6") -> dict:
     """
     Uses Claude to generate a package with video dialogue, title, and caption.
     sender_mode: 'personal' (individual voice) or 'company' (brand voice)
@@ -180,11 +179,13 @@ def generate_marketing_package(prompt: str, user_id: str, sender_mode: str = 'pe
     """
     ctx = _get_sender_context(user_id)
     system_message = _build_system_message(ctx, sender_mode, target_duration)
+    # Move client creation inside (was module-level, now per-call to honour model config)
+    claude_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
     logger.info("Sending to Claude: prompt length=%d, preview=%s", len(prompt), prompt[:200])
 
     response = claude_client.messages.create(
-        model="claude-sonnet-4-6",
+        model=model_name,
         max_tokens=1024,
         system=system_message,
         messages=[
@@ -205,7 +206,7 @@ def generate_marketing_package(prompt: str, user_id: str, sender_mode: str = 'pe
         logger.error("Failed to parse Claude response: %s", e)
         return {"error": "Failed to parse Claude response"}
 
-def generate_intelligent_prompt_from_company_data(company_name: str, user_id: str, sender_mode: str = 'personal', target_duration: str = 'short') -> dict:  # NOSONAR
+def generate_intelligent_prompt_from_company_data(company_name: str, user_id: str, sender_mode: str = 'personal', target_duration: str = 'short', model_name: str = "claude-sonnet-4-6") -> dict:  # NOSONAR
     """
     Generate an intelligent AI solutions marketing prompt based on comprehensive company data analysis from MongoDB
     """
@@ -222,7 +223,7 @@ def generate_intelligent_prompt_from_company_data(company_name: str, user_id: st
             _offer = _ctx.get("what_we_do") or "our solutions"
             _our = _ctx.get("company_name") or DEFAULT_COMPANY
             basic_prompt = f"Create a personalized outreach campaign for {company_name} on behalf of {_our}. Our offer: {_offer}. Reference how we can help them streamline operations, grow, and solve their key business challenges."
-            package = generate_marketing_package(basic_prompt, user_id, sender_mode, target_duration)
+            package = generate_marketing_package(basic_prompt, user_id, sender_mode, target_duration, model_name)
             package["source_data"] = {
                 "company_name": company_name,
                 "industry": "Technology",
@@ -380,7 +381,7 @@ CRITICAL RULES:
 7. The dialogue should feel like it was written by someone who genuinely follows {company_name}'s business"""
 
         # Generate the marketing package using the intelligent prompt as user_prompt
-        package = generate_marketing_package(final_prompt, user_id, sender_mode, target_duration)
+        package = generate_marketing_package(final_prompt, user_id, sender_mode, target_duration, model_name)
 
         # Add metadata about the data used
         package["source_data"] = {
@@ -406,7 +407,7 @@ CRITICAL RULES:
         _ctx = _get_sender_context(user_id)
         _offer = _ctx.get("what_we_do") or "our solutions"
         _our = _ctx.get("company_name") or DEFAULT_COMPANY
-        return generate_marketing_package(f"Create a personalized outreach campaign for {company_name} on behalf of {_our}. Our offer: {_offer}. Help them grow and solve their key challenges.", user_id, sender_mode, target_duration)
+        return generate_marketing_package(f"Create a personalized outreach campaign for {company_name} on behalf of {_our}. Our offer: {_offer}. Help them grow and solve their key challenges.", user_id, sender_mode, target_duration, model_name)
 
 def generate_marketing_package_from_linkedin(url: str, user_id: str) -> dict:
     company_info = extract_company_info(url)
