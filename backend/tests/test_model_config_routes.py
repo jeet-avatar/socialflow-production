@@ -27,3 +27,21 @@ def test_upsert_default_config(client, auth_headers):
 def test_model_config_requires_auth(client):
     response = client.get("/model-config")
     assert response.status_code == 401
+
+
+def test_list_providers(client):
+    """GET /model-config/providers — no auth required, returns all 4 provider lists."""
+    response = client.get("/model-config/providers")
+    assert response.status_code == 200
+    data = response.json()
+    assert "script_models" in data
+    assert "voice_providers" in data
+    assert "video_bg_providers" in data
+    assert "research_providers" in data
+    # Verify known values are present
+    assert "claude-sonnet-4-6" in data["script_models"]
+    assert "elevenlabs" in data["voice_providers"]
+    assert "fal_kling" in data["video_bg_providers"]
+    assert "serper" in data["research_providers"]
+    # Lists must be sorted (the endpoint sorts them)
+    assert data["script_models"] == sorted(data["script_models"])
