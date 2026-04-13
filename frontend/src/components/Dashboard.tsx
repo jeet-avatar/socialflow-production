@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as leadsSearchService from '../services/leadsSearchService';
 import * as companyAnalysisService from '../services/companyAnalysisService';
+import { API_BASE_URL } from '../config/api';
 
 // ── Count-up animation hook ───────────────────────────────────────────────────
 const useCountUp = (target: number, duration = 900, active = true) => {
@@ -39,6 +40,7 @@ import OnboardingTour from './OnboardingTour';
 import WelcomeModal from './WelcomeModal';
 import ChatBot from './ChatBot';
 import VideoStudio from './videostudio/VideoStudio';
+import SeedanceStudio from './SeedanceStudio';
 import CreditRating from './CreditRating';
 import Leads from './Leads';
 import UserProfile from './UserProfile';
@@ -215,8 +217,10 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
     const fetchPlan = async () => {
       if (!user?.sub) return;
       try {
-        const API_URL = import.meta.env.VITE_API_URL ?? 'https://socialflow.network';
-        const response = await fetch(`${API_URL}/api/subscription/status/${user.sub}`);
+        const token = await getAuthToken();
+        const response = await fetch(`${API_BASE_URL}/api/subscription/status/${user.sub}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         const data = await response.json();
         setCurrentPlan(data.plan ?? 'free');
       } catch {
@@ -231,8 +235,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
     const loadMongoProfile = async () => {
       try {
         const token = await getAuthToken();
-        const API_URL = import.meta.env.VITE_API_URL ?? 'https://socialflow.network';
-        const r = await fetch(`${API_URL}/auth/user-profile`, { headers: { Authorization: `Bearer ${token}` } });
+        const r = await fetch(`${API_BASE_URL}/auth/user-profile`, { headers: { Authorization: `Bearer ${token}` } });
         if (!r.ok) return;
         const data = await r.json();
         if (data?.user)
@@ -800,8 +803,9 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
                 { id: 'dashboard',        icon: Home,      label: 'Dashboard'         },
                 { id: 'leads',            icon: UserCheck, label: 'Leads'             },
                 { id: 'company-analysis', icon: Building2, label: 'Company Analysis'  },
-                { id: 'video-studio',     icon: Video,     label: 'Video Studio'      },
-                { id: 'profile',          icon: User,      label: 'Profile'           },
+                { id: 'video-studio',     icon: Video,      label: 'Video Studio'      },
+                { id: 'seedance-studio',  icon: Sparkles,   label: 'Seedance Studio'   },
+                { id: 'profile',          icon: User,       label: 'Profile'           },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -994,8 +998,13 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
           <VideoStudio isActive={activeTab === 'video-studio'} />
         </div>
 
+        {/* Seedance Studio — full viewport, always mounted to preserve state */}
+        <div style={{ display: activeTab === 'seedance-studio' ? 'block' : 'none' }} className="h-[calc(100vh-73px)] overflow-y-auto">
+          <SeedanceStudio />
+        </div>
+
         {/* Page Content — all other tabs */}
-        {activeTab !== 'video-studio' && (
+        {activeTab !== 'video-studio' && activeTab !== 'seedance-studio' && (
           <main ref={mainRef} className="px-8 py-6 min-h-screen max-w-[1600px] mx-auto">
             <div style={{ display: activeTab === 'dashboard'        ? 'block' : 'none' }}>{renderDashboardContent()}</div>
             <div style={{ display: activeTab === 'company-analysis' ? 'block' : 'none' }}><CreditRating prefillQuery={analysisQuery} /></div>
@@ -1016,7 +1025,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
           </main>
         )}
 
-        {activeTab !== 'video-studio' && <Footer onNavigate={handleNavigate} />}
+        {activeTab !== 'video-studio' && activeTab !== 'seedance-studio' && <Footer onNavigate={handleNavigate} />}
       </div>
 
       {/* ── Guide Me Video Modal ── */}

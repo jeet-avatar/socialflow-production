@@ -126,7 +126,7 @@ const DataProcessingAddendum: React.FC<DataProcessingAddendumProps> = ({ onBack 
                   <li>• <strong>AWS:</strong> Cloud infrastructure and storage</li>
                   <li>• <strong>MongoDB Atlas:</strong> Database services</li>
                   <li>• <strong>Stripe:</strong> Payment processing</li>
-                  <li>• <strong>Auth0:</strong> Authentication services</li>
+                  <li>• <strong>Clerk:</strong> Authentication services</li>
                   <li>• <strong>OpenAI:</strong> AI content generation</li>
                   <li>• <strong>ElevenLabs:</strong> Voice synthesis</li>
                 </ul>

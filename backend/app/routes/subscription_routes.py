@@ -1,12 +1,13 @@
 """
 Subscription and payment routes using Stripe
 """
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from pydantic import BaseModel
 from typing import Annotated, Optional
 import os
 import logging
 from datetime import datetime, timezone
+from utils.middleware.auth_middleware import auth_middleware
 from utils.subscription_service import subscription_service
 from utils.mongodb_service import mongodb_service
 from utils.notifications import send_plan_upgrade_notification
@@ -75,6 +76,20 @@ PLAN_CATALOG = [
 ]
 
 _SUB_NOT_FOUND = "Subscription not found"
+_NO_AUTH = "Authentication required"
+_FORBIDDEN = "Access forbidden"
+
+
+def get_current_user(authorization: Annotated[Optional[str], Header()] = None) -> str:
+    if not authorization:
+        raise HTTPException(status_code=401, detail=_NO_AUTH)
+    user_info = auth_middleware.verify_token(authorization)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return user_info["user_id"]
+
+
+CurrentUser = Annotated[str, Depends(get_current_user)]
 _WEBHOOK_CONFIG_ERROR = "Webhook configuration error"
 _MISSING_SIGNATURE = "Missing signature"
 _INVALID_SIGNATURE = "Invalid signature"
@@ -128,12 +143,18 @@ async def get_subscription_plans():
 
 @router.get(
     "/status/{user_id}",
-    responses={500: {"description": "Internal server error"}},
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Access forbidden"},
+        500: {"description": "Internal server error"},
+    },
 )
-async def get_subscription_status(user_id: str):
+async def get_subscription_status(user_id: str, caller_id: CurrentUser):
     """
     Get user's subscription status with real data from database
     """
+    if caller_id != user_id:
+        raise HTTPException(status_code=403, detail=_FORBIDDEN)
     try:
         # Get subscription and usage stats from database
         stats = subscription_service.get_usage_stats(user_id)
@@ -395,14 +416,18 @@ def handle_payment_failed(invoice):
 @router.post(
     "/cancel/{user_id}",
     responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Access forbidden"},
         404: {"description": _SUB_NOT_FOUND},
         500: {"description": "Internal server error"},
     },
 )
-async def cancel_subscription(user_id: str):
+async def cancel_subscription(user_id: str, caller_id: CurrentUser):
     """
     Cancel user's subscription (at end of billing period)
     """
+    if caller_id != user_id:
+        raise HTTPException(status_code=403, detail=_FORBIDDEN)
     try:
         success = subscription_service.cancel_subscription(user_id, immediate=False)
 
@@ -425,14 +450,18 @@ async def cancel_subscription(user_id: str):
 @router.post(
     "/reactivate/{user_id}",
     responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Access forbidden"},
         404: {"description": _SUB_NOT_FOUND},
         500: {"description": "Internal server error"},
     },
 )
-async def reactivate_subscription(user_id: str):
+async def reactivate_subscription(user_id: str, caller_id: CurrentUser):
     """
     Reactivate cancelled subscription
     """
+    if caller_id != user_id:
+        raise HTTPException(status_code=403, detail=_FORBIDDEN)
     try:
         subscription = subscription_service.get_subscription(user_id)
 
@@ -466,12 +495,18 @@ async def reactivate_subscription(user_id: str):
 
 @router.get(
     "/check-limit/{user_id}/{resource_type}",
-    responses={500: {"description": "Internal server error"}},
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Access forbidden"},
+        500: {"description": "Internal server error"},
+    },
 )
-async def check_usage_limit(user_id: str, resource_type: str):
+async def check_usage_limit(user_id: str, resource_type: str, caller_id: CurrentUser):
     """
     Check if user can use a specific resource based on their plan limits
     """
+    if caller_id != user_id:
+        raise HTTPException(status_code=403, detail=_FORBIDDEN)
     try:
         limit_check = subscription_service.check_usage_limit(user_id, resource_type)
         return limit_check
@@ -483,14 +518,17 @@ async def check_usage_limit(user_id: str, resource_type: str):
 @router.post(
     "/track-usage/{user_id}/{resource_type}",
     responses={
-        403: {"description": "Usage limit exceeded"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Usage limit exceeded or access forbidden"},
         500: {"description": "Internal server error"},
     },
 )
-async def track_usage(user_id: str, resource_type: str, amount: int = 1):
+async def track_usage(user_id: str, resource_type: str, caller_id: CurrentUser, amount: int = 1):
     """
     Track usage of a resource (increment counter)
     """
+    if caller_id != user_id:
+        raise HTTPException(status_code=403, detail=_FORBIDDEN)
     try:
         limit_check = subscription_service.check_usage_limit(user_id, resource_type)
 

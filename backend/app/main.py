@@ -37,6 +37,7 @@ from routes.user_routes import router as user_router
 from routes.channel_routes import router as channels_router
 from routes.model_config_routes import router as model_config_router
 from routes.chat_routes import router as chat_router
+from routes.seedance_routes import router as seedance_router
 
 # Import services for startup
 from utils.db_init import init_collections
@@ -109,6 +110,7 @@ app.include_router(user_router)
 app.include_router(channels_router)
 app.include_router(model_config_router)
 app.include_router(chat_router)
+app.include_router(seedance_router)
 
 # Startup event
 @app.on_event("startup")

@@ -755,7 +755,6 @@ async def youtube_oauth_callback(code: str, state: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"  CALLBACK EXCEPTION: {e}")
         logger.error(f"OAuth callback error: {e}")
         return RedirectResponse(
             url=f"{FRONTEND_URL}/integrations?youtube_auth=error&message={e}",
