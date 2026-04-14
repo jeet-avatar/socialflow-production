@@ -9,12 +9,12 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 05-celery-workers (Plan 01 complete ✅)
-Plan: Wave 2 in progress — Phase 05 Plan 01 executed 2026-04-13
-Status: 05-01 COMPLETE. POST /video-remotion async via Celery; Redis progress store; fal.ai idempotency; docker-compose celery_worker service. 3/3 tests pass.
-Last activity: 2026-04-13 — Phase 05-01 executed: celery_app.py, video_tasks.py, redis_client.py, content_routes.py refactor, docker-compose celery_worker
+Phase: 06-shorts-tiktok (Plan 02 complete ✅)
+Plan: Wave 2 in progress — Phase 06 Plan 02 executed 2026-04-14
+Status: 06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py. GET /tiktok/oauth/authorize returns auth URL; GET /tiktok/oauth/callback exchanges code and stores accessToken/refreshToken/openId/tokenExpiresAt.
+Last activity: 2026-04-14 — Phase 06-02 executed: backend/app/routes/integrations_routes.py
 
-Progress: [██████████████░░░░░░] ~45% (Wave 1 complete, Wave 2 phase 04+05 done)
+Progress: [███████████████░░░░░] ~50% (Wave 1 complete, Wave 2 phases 04+05+06-02 done)
 
 ## Completed Milestones
 
@@ -52,6 +52,9 @@ Progress: [██████████████░░░░░░] ~45% (W
 - [2026-04-13]: Redis DB split: DB0=broker, DB1=results, DB2=progress keys (TTL 7200s) — avoids key collisions
 - [2026-04-13]: task_acks_late + task_reject_on_worker_lost — ensures task re-queued if worker OS process is killed
 - [2026-04-13]: fal.ai idempotency via Redis — get_fal_request_id before submit, set_fal_request_id after receiving request_id
+- [2026-04-14]: TikTok PKCE: inline `import requests as _req` in callback to avoid shadowing module-level requests import
+- [2026-04-14]: TikTok state: base64 JSON encodes {user_id, code_verifier} — same pattern as YouTube OAuth
+- [2026-04-14]: TikTok tokenExpiresAt stored as UTC epoch integer (int(time.time()) + expires_in) for easy downstream comparison
 
 ### Pending Todos
 
@@ -64,6 +67,6 @@ Progress: [██████████████░░░░░░] ~45% (W
 
 ## Session Continuity
 
-Last session: 2026-04-13
-Stopped at: Completed Phase 05 Plan 01 (Celery workers — POST /video-remotion async, Redis progress, fal.ai idempotency, docker-compose celery_worker)
+Last session: 2026-04-14
+Stopped at: Completed Phase 06 Plan 02 (TikTok OAuth PKCE — GET /tiktok/oauth/authorize + GET /tiktok/oauth/callback in integrations_routes.py)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
