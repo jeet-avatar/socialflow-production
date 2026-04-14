@@ -18,8 +18,7 @@
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
 | 01 | Infra & DevOps | Docker, CI/CD, rate limiting, secrets, CORS, cleanup | Ready |
-| 02 | DB Schema & Backend | 5 new collections, channel routes, model-config routes, Auth0 removal, pricing fix | Ready |
-| 03 | Test Framework | pytest + Vitest + Playwright, coverage for all routes | Ready |
+| 02 | DB Schema & Backend | 5 new collections, channel routes, model-config routes, Auth0 removal, pricing fix | 1/1 | Complete   | 2026-04-14 | Test Framework | pytest + Vitest + Playwright, coverage for all routes | Ready |
 
 **Gate:** Wave 2 blocked until all 3 merge to main and CI passes.
 

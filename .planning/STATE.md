@@ -9,12 +9,12 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 04-ai-model-layer (Plan 01 complete ✅)
-Plan: Wave 2 in progress — Phase 04 Plan 01 executed 2026-04-13
-Status: 04-01 COMPLETE. AI pipeline model-agnostic via ModelConfig + resolve_model_config. 26/26 tests pass.
-Last activity: 2026-04-13 — Phase 04-01 executed: provider_config.py, /providers endpoint, 4 call sites wired, useModelConfig hook
+Phase: 05-celery-workers (Plan 01 complete ✅)
+Plan: Wave 2 in progress — Phase 05 Plan 01 executed 2026-04-13
+Status: 05-01 COMPLETE. POST /video-remotion async via Celery; Redis progress store; fal.ai idempotency; docker-compose celery_worker service. 3/3 tests pass.
+Last activity: 2026-04-13 — Phase 05-01 executed: celery_app.py, video_tasks.py, redis_client.py, content_routes.py refactor, docker-compose celery_worker
 
-Progress: [████████████░░░░░░░░] ~35% (Wave 1 complete, Wave 2 next)
+Progress: [██████████████░░░░░░] ~45% (Wave 1 complete, Wave 2 phase 04+05 done)
 
 ## Completed Milestones
 
@@ -48,6 +48,10 @@ Progress: [████████████░░░░░░░░] ~35% (W
 - [2026-04-13]: resolve_model_config() wraps DB access in try/except — DB unavailable must not crash AI pipeline
 - [2026-04-13]: /providers route registered before /{channel_id} — FastAPI routes literal strings before path params
 - [2026-04-13]: research_provider wiring deferred to phase-08 — TODO comment added in content_routes.py
+- [2026-04-13]: Extracted _run_video_pipeline() in content_routes.py — Celery task delegates to it; avoids 200-line duplication
+- [2026-04-13]: Redis DB split: DB0=broker, DB1=results, DB2=progress keys (TTL 7200s) — avoids key collisions
+- [2026-04-13]: task_acks_late + task_reject_on_worker_lost — ensures task re-queued if worker OS process is killed
+- [2026-04-13]: fal.ai idempotency via Redis — get_fal_request_id before submit, set_fal_request_id after receiving request_id
 
 ### Pending Todos
 
@@ -61,5 +65,5 @@ Progress: [████████████░░░░░░░░] ~35% (W
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Completed Phase 04 Plan 01 (AI model layer — ModelConfig + resolve_model_config + /providers + useModelConfig hook)
+Stopped at: Completed Phase 05 Plan 01 (Celery workers — POST /video-remotion async, Redis progress, fal.ai idempotency, docker-compose celery_worker)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
