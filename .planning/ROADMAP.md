@@ -132,4 +132,16 @@ Plans:
 
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
-| 10 | Production Deploy | ECS cluster, staging → prod, CloudFront, monitoring | Backlog |
+| 10 | Production Deploy | CI hardening, SCHEDULER_ENABLED wiring, health check, deploy runbook | In Progress |
+
+### Phase 10: Production Deploy
+
+**Goal:** Make the project production-deployable — harden CI so tests actually gate Docker image builds, wire SCHEDULER_ENABLED so APScheduler only runs on the primary ECS task, enhance /health to return real service statuses, and write a production deployment runbook.
+
+**Requirements:** DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — CI hardening: remove || true soft-fails, inject SCHEDULER_ENABLED=false + JWT_SECRET_KEY into test step (DEPLOY-01, DEPLOY-02)
+- [ ] 10-02-PLAN.md — docker-compose SCHEDULER_ENABLED env vars + enhanced /health endpoint + README production runbook (DEPLOY-03, DEPLOY-04)
