@@ -76,3 +76,5 @@ websockets
 Werkzeug
 openai-whisper
 slowapi==0.1.9
+celery[redis]
+redis
