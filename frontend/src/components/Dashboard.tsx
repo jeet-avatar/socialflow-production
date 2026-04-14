@@ -53,6 +53,9 @@ import { getAuthToken } from '../utils/getAuthToken';
 import { useAuth } from '../hooks/useSupabase';
 import { integrationsService } from '../services/integrationsService';
 import { API_BASE_URL } from '../config/api';
+import ChannelDashboard from './channels/ChannelDashboard';
+import PipelineBuilder from './channels/PipelineBuilder';
+import { AnimatePresence } from 'framer-motion';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -152,6 +155,10 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
   const handleCloseVideo = () => setShowVideoModal(false);
 
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  // ── Channel pipeline overlay state ────────────────────────────────────────
+  const [activePipelineChannel, setActivePipelineChannel] = useState<string | null>(null);
+  const [showPipelineOverlay, setShowPipelineOverlay] = useState(false);
 
   // ── Background search indicator (leads + company analysis) ────────────────
   const isLeadsRunning = () => leadsSearchService.getState()?.status === 'running';
@@ -805,6 +812,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
                 { id: 'company-analysis', icon: Building2, label: 'Company Analysis'  },
                 { id: 'video-studio',     icon: Video,      label: 'Video Studio'      },
                 { id: 'seedance-studio',  icon: Sparkles,   label: 'Seedance Studio'   },
+                { id: 'channels',         icon: Workflow,   label: 'Channels'          },
                 { id: 'profile',          icon: User,       label: 'Profile'           },
               ].map((item) => (
                 <button
@@ -1022,10 +1030,33 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
             <div style={{ display: activeTab === 'profile' ? 'block' : 'none' }}>
               <UserProfile selectedPlatform={selectedPlatform} onPlatformChange={setSelectedPlatform} />
             </div>
+            <div style={{ display: activeTab === 'channels' ? 'block' : 'none' }}>
+              <ChannelDashboard
+                onOpenPipeline={(channelId) => {
+                  setActivePipelineChannel(channelId);
+                  setShowPipelineOverlay(true);
+                }}
+              />
+            </div>
           </main>
         )}
 
         {activeTab !== 'video-studio' && activeTab !== 'seedance-studio' && <Footer onNavigate={handleNavigate} />}
+
+        <AnimatePresence>
+          {showPipelineOverlay && activePipelineChannel && (
+            <div className="fixed inset-0 bg-dark-bg z-50 overflow-y-auto">
+              <PipelineBuilder
+                channelId={activePipelineChannel}
+                onClose={() => {
+                  setShowPipelineOverlay(false);
+                  setActivePipelineChannel(null);
+                  setActiveTab('channels');
+                }}
+              />
+            </div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Guide Me Video Modal ── */}
