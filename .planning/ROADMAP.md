@@ -41,7 +41,7 @@
 | 04 | AI Model Layer | Complete    | 2026-04-13 |
 | 05 | Celery Workers | Complete    | 2026-04-14 |
 | 06 | Shorts + TikTok | Complete    | 2026-04-14 |
-| 07 | 1/2 | In Progress|  |
+| 07 | 2/2 | Complete    | 2026-04-14 |
 
 ### Phase 04: AI Model Layer
 
@@ -88,11 +88,11 @@ Plans:
 
 **Requirements:** UI-01, UI-02, UI-03
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 07-01-PLAN.md — ChannelDashboard.tsx (channel list + create modal + auto_post toggle) + ModelPicker.tsx (reusable provider selector cards)
-- [ ] 07-02-PLAN.md — PipelineBuilder.tsx (per-channel pipeline config with ModelPicker) + Dashboard.tsx integration (Channels nav + tab + overlay)
+- [x] 07-01-PLAN.md — ChannelDashboard.tsx (channel list + create modal + auto_post toggle) + ModelPicker.tsx (reusable provider selector cards) (COMPLETE 2026-04-14, commits 19e5e00 + 6fa9fcb)
+- [x] 07-02-PLAN.md — PipelineBuilder.tsx (per-channel pipeline config with ModelPicker) + Dashboard.tsx integration (Channels nav + tab + overlay) (COMPLETE 2026-04-14, commits 86da898 + db47320)
 
 ---
 

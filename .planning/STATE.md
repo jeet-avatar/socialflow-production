@@ -9,15 +9,16 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 07-ui-ux-redesign (Plan 01 complete ✅)
-Plan: Wave 2 in progress — Phase 07 Plan 01 executed 2026-04-14
+Phase: 07-ui-ux-redesign (Plan 02 complete ✅)
+Plan: Wave 2 in progress — Phase 07 Plan 02 executed 2026-04-14
 Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
        06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
        06-03 COMPLETE. tiktok_post_helper.py with token refresh + PULL_FROM_URL + FILE_UPLOAD fallback; POST /post-to-tiktok route in content_routes.py; 7 unit tests all passing.
        07-01 COMPLETE. ChannelDashboard.tsx (channel list + create modal + auto-post toggle + onOpenPipeline); ModelPicker.tsx (reusable provider selector cards). TypeScript zero errors.
-Last activity: 2026-04-14 — Phase 07-01 executed: ChannelDashboard.tsx, ModelPicker.tsx
+       07-02 COMPLETE. PipelineBuilder.tsx (per-channel AI pipeline config with 3 ModelPicker sections, save via POST /model-config); Dashboard.tsx wired with Channels nav + ChannelDashboard tab + AnimatePresence PipelineBuilder overlay.
+Last activity: 2026-04-14 — Phase 07-02 executed: PipelineBuilder.tsx, Dashboard.tsx updated
 
-Progress: [██████████████████░░] ~65% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01 done)
+Progress: [███████████████████░] ~68% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02 done)
 
 ## Completed Milestones
 
@@ -68,6 +69,9 @@ Progress: [██████████████████░░] ~65% (W
 - [2026-04-14]: ModelPicker is named export (not default) — PipelineBuilder (plan 02) imports it as named import
 - [2026-04-14]: Full Tailwind class strings only in ModelPicker — no template literals with variable color segments (purge safety)
 - [2026-04-14]: TikTok status poll PROCESSING after 2 min is non-fatal (success=True) — post is in-flight
+- [2026-04-14]: PipelineBuilder channelId is required string (not optional) — Dashboard gates mount with activePipelineChannel && check
+- [2026-04-14]: PipelineBuilder updateConfig calls POST /model-config (upsert) — no PUT route exists in backend
+- [2026-04-14]: AnimatePresence wraps the overlay div; framer-motion motion.div inside PipelineBuilder handles slide-in animation
 
 ### Pending Todos
 
@@ -81,5 +85,5 @@ Progress: [██████████████████░░] ~65% (W
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Completed Phase 07 Plan 01 (ChannelDashboard.tsx + ModelPicker.tsx — glass card channel dashboard, create modal, auto-post toggle, reusable provider selector)
+Stopped at: Completed Phase 07 Plan 02 (PipelineBuilder.tsx + Dashboard.tsx wiring — fullscreen AnimatePresence overlay, Channels nav, ChannelDashboard tab, three ModelPicker sections, save via POST /model-config)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
