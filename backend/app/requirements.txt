@@ -67,3 +67,4 @@ uvicorn
 websockets
 Werkzeug
 whisper
+APScheduler==3.11.*
