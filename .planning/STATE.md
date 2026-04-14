@@ -9,14 +9,15 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 06-shorts-tiktok (Plans 01+02+03 complete ✅)
-Plan: Wave 2 in progress — Phase 06 Plans 01+02+03 executed 2026-04-14
+Phase: 07-ui-ux-redesign (Plan 01 complete ✅)
+Plan: Wave 2 in progress — Phase 07 Plan 01 executed 2026-04-14
 Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
        06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
        06-03 COMPLETE. tiktok_post_helper.py with token refresh + PULL_FROM_URL + FILE_UPLOAD fallback; POST /post-to-tiktok route in content_routes.py; 7 unit tests all passing.
-Last activity: 2026-04-14 — Phase 06-03 executed: tiktok_post_helper.py, POST /post-to-tiktok, test_tiktok_helper.py (7 tests)
+       07-01 COMPLETE. ChannelDashboard.tsx (channel list + create modal + auto-post toggle + onOpenPipeline); ModelPicker.tsx (reusable provider selector cards). TypeScript zero errors.
+Last activity: 2026-04-14 — Phase 07-01 executed: ChannelDashboard.tsx, ModelPicker.tsx
 
-Progress: [█████████████████░░░] ~60% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03 done)
+Progress: [██████████████████░░] ~65% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01 done)
 
 ## Completed Milestones
 
@@ -63,6 +64,9 @@ Progress: [█████████████████░░░] ~60% (W
 - [2026-04-14]: TikTok post: PULL_FROM_URL for URLs, FILE_UPLOAD fallback for local paths or domain_not_verified errors
 - [2026-04-14]: TikTok token refresh window 60 min — refresh before posting if tokenExpiresAt within 3600s
 - [2026-04-14]: TikTok privacy defaults to SELF_ONLY for unaudited apps; PUBLIC_TO_EVERYONE only if creator_info confirms it
+- [2026-04-14]: ChannelDashboard uses optimistic update with revert on PUT failure — avoids loading state for toggle UX
+- [2026-04-14]: ModelPicker is named export (not default) — PipelineBuilder (plan 02) imports it as named import
+- [2026-04-14]: Full Tailwind class strings only in ModelPicker — no template literals with variable color segments (purge safety)
 - [2026-04-14]: TikTok status poll PROCESSING after 2 min is non-fatal (success=True) — post is in-flight
 
 ### Pending Todos
@@ -77,5 +81,5 @@ Progress: [█████████████████░░░] ~60% (W
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Completed Phase 06 Plan 03 (tiktok_post_helper.py — token refresh, PULL_FROM_URL, FILE_UPLOAD fallback; POST /post-to-tiktok route; 7 unit tests)
+Stopped at: Completed Phase 07 Plan 01 (ChannelDashboard.tsx + ModelPicker.tsx — glass card channel dashboard, create modal, auto-post toggle, reusable provider selector)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
