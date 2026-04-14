@@ -11,6 +11,7 @@ import shutil
 import tempfile
 import time
 import urllib.request
+import uuid
 
 import anyio
 import boto3
@@ -76,15 +77,8 @@ _UPGRADE_MSG = "Upgrade to Professional plan for unlimited video generation!"
 _LOG_ANALYZE = "[Remotion/Analyze]"
 _LOG_REMOTION = "[Remotion]"
 
-# ── In-memory render-progress store (keyed by job_id) ──────────────────────
-_progress_store: dict[str, dict] = {}
-
-
-def _set_progress(job_id: str, percent: int, stage: str, detail: str = "") -> None:
-    """Update progress for a render job. No-op if job_id is empty."""
-    if not job_id:
-        return
-    _progress_store[job_id] = {"percent": percent, "stage": stage, "detail": detail, "ts": time.time()}
+# ── Redis-backed render-progress store (replaces in-memory _progress_store) ──
+from utils.redis_client import set_progress as _set_progress, get_progress as _get_progress
 
 
 # ---------------------------------------------------------------------------
@@ -616,6 +610,7 @@ def _generate_scene_veo3_clips(
     openai_api_key: str = "",
     fal_model: str = "",
     clip_duration: int = 5,
+    job_id: str = "",
 ) -> list:
     """
     Generate a cinematic video clip for each scene descriptor using fal.ai (Kling).
@@ -693,18 +688,28 @@ def _generate_scene_veo3_clips(
                 logger.info(f"  prompt ({len(prompt)} chars): {prompt}")
                 logger.info("  submitting to fal.ai queue...")
 
-                # Submit job
-                submit_resp = http_requests.post(
-                    f"https://queue.fal.run/{FAL_MODEL}",
-                    headers=headers,
-                    json={"prompt": prompt, "duration": dur_str, "aspect_ratio": "16:9"},
-                    timeout=30,
-                )
-                submit_resp.raise_for_status()
-                submit_data = submit_resp.json()
-                request_id = submit_data["request_id"]
-                status_url  = submit_data["status_url"]
-                result_url  = submit_data["response_url"]
+                # fal.ai idempotency: resume polling if request_id already stored (worker restart)
+                from utils.redis_client import get_fal_request_id, set_fal_request_id  # noqa: PLC0415
+                existing_req_id = get_fal_request_id(job_id, idx) if job_id else None
+                if existing_req_id:
+                    request_id = existing_req_id
+                    status_url = f"https://queue.fal.run/{FAL_MODEL}/requests/{request_id}/status"
+                    result_url = f"https://queue.fal.run/{FAL_MODEL}/requests/{request_id}"
+                    logger.info(f"  [idempotent] resuming fal.ai poll for request_id: {request_id}")
+                else:
+                    # Fresh submission
+                    submit_resp = http_requests.post(
+                        f"https://queue.fal.run/{FAL_MODEL}",
+                        headers=headers,
+                        json={"prompt": prompt, "duration": dur_str, "aspect_ratio": "16:9"},
+                        timeout=30,
+                    )
+                    submit_resp.raise_for_status()
+                    submit_data = submit_resp.json()
+                    request_id = submit_data["request_id"]
+                    set_fal_request_id(job_id, idx, request_id)  # store BEFORE polling loop
+                    status_url  = submit_data["status_url"]
+                    result_url  = submit_data["response_url"]
                 logger.info(f"  queued — request_id: {request_id}")
 
                 # Poll for completion
@@ -1765,12 +1770,8 @@ async def generate_video_endpoint(request: Request, user_info: CurrentUser):
 
 @router.get("/video-remotion/progress/{job_id}")
 async def get_render_progress(job_id: str):
-    """Poll real-time progress for a video render job. No auth required."""
-    cutoff = time.time() - 7200  # prune entries older than 2 hours
-    stale = [k for k, v in _progress_store.items() if v.get("ts", 0) < cutoff]
-    for k in stale:
-        _progress_store.pop(k, None)
-    entry = _progress_store.get(job_id, {})
+    """Poll render progress. Reads from Redis (multi-process safe, survives worker restart)."""
+    entry = _get_progress(job_id)
     return {
         "percent": entry.get("percent", 0),
         "stage":   entry.get("stage",   "queued"),
@@ -2186,189 +2187,209 @@ async def analyze_video_remotion_endpoint(request: Request, user_info: CurrentUs
         return {"error": f"Remotion analyze step failed: {str(e)}"}
 
 
+def _run_video_pipeline(
+    user_id: str,
+    job_id: str,
+    body: dict,
+    model_cfg=None,
+    whisper_module=None,
+) -> dict:
+    """
+    Standalone (sync) video pipeline extracted from generate_video_remotion_endpoint.
+    Called by the Celery worker (video_tasks.py) so the full pipeline runs outside
+    the HTTP request cycle. Also importable for testing.
+
+    NOTE: This function uses asyncio.run() internally for the async audio pipeline step.
+    It is designed to be called from a Celery worker thread, not from an async context.
+    """
+    import asyncio as _asyncio
+
+    dialogue = body.get("dialogue")
+    company_name = body.get("company_name", "")
+    video_title = body.get("video_title", "")
+    social_caption = body.get("social_caption", "")
+    client_logo_url = body.get("client_logo_url", "")
+    user_logo_url = body.get("user_logo_url", "")
+    template_video_url = body.get("template_video", _DEFAULT_TEMPLATE)
+    bgm_url = body.get("bgm", _DEFAULT_BGM)
+    voice_id = body.get("voice_id", "")
+    show_captions = body.get("show_captions", True)
+    use_veo3 = bool(body.get("use_veo3", False))
+    fal_model = body.get("fal_model", "fal-ai/kling-video/v1.6/standard/text-to-video")
+    clip_duration = int(body.get("clip_duration", 5))
+
+    logger.info(f"{_LOG_REMOTION} Pipeline start — user: {user_id}, company: {company_name}, use_veo3={use_veo3}")
+
+    # Resolve per-channel model config if not pre-resolved
+    channel_id = body.get("channel_id")
+    cfg = model_cfg if model_cfg is not None else resolve_model_config(user_id, channel_id)
+    effective_fal_model = body.get("fal_model") or cfg.fal_model_id
+
+    if not dialogue:
+        return {"error": _DIALOGUE_REQUIRED}
+
+    _set_progress(job_id, 5, "Starting")
+    _check_video_usage_limit(user_id)
+
+    if company_name and _COMPANY_NAME_PLACEHOLDER in dialogue:
+        dialogue = dialogue.replace(_COMPANY_NAME_PLACEHOLDER, company_name)
+
+    _set_progress(job_id, 12, "Resolving logos")
+    client_logo_url, user_logo_url, sender_name = _resolve_video_logos(
+        user_id, company_name, client_logo_url, user_logo_url
+    )
+
+    # ── Audio pipeline (voiceover + subtitles + scene descriptors) ──────
+    _set_progress(job_id, 18, "Preparing audio")
+    voiceover_s3_url, subtitle_segments, scene_descriptors, voiceover_duration_seconds, tmp_audio_path, caption_segments = \
+        _asyncio.run(_prepare_remotion_audio(
+            body.get("voiceover_url", ""), body.get("subtitle_segments", []),
+            body.get("voiceover_duration_seconds", 0), body.get("scene_descriptors", []),
+            dialogue, company_name, _LOG_REMOTION, voice_id,
+            precomputed_caption_segments=body.get("caption_segments", []),
+        ))
+    _set_progress(job_id, 52, "Scene plan ready")
+
+    # ── Enrich scenes (brand color + news hook + Veo3/DALL-E) ────────────
+    _set_progress(job_id, 55, "Generating backgrounds", "0 scenes done")
+    if cfg.video_bg_provider == "dalle3" and not body.get("fal_model"):
+        scene_descriptors = _enrich_scene_descriptors_for_remotion(
+            scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
+            job_id=job_id, use_veo3=False,
+            dialogue=dialogue, sender_name=sender_name,
+            fal_model="dalle", clip_duration=clip_duration,
+        )
+    else:
+        scene_descriptors = _enrich_scene_descriptors_for_remotion(
+            scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
+            job_id=job_id, use_veo3=use_veo3,
+            dialogue=dialogue, sender_name=sender_name,
+            fal_model=effective_fal_model, clip_duration=clip_duration,
+        )
+
+    # If AI video failed, expand to 3 DALL-E scenes
+    ai_succeeded = bool(scene_descriptors and scene_descriptors[0].get("background_video_url"))
+    if use_veo3 and not ai_succeeded and len(scene_descriptors) == 1:
+        scene_descriptors, subtitle_segments = _expand_to_three_dalle_scenes(
+            scene_descriptors, subtitle_segments, voiceover_duration_seconds,
+            os.getenv("OPENAI_API_KEY", ""),
+        )
+
+    # Normalize subtitle_segments count to match scene_descriptors
+    n_scenes = len(scene_descriptors)
+    if n_scenes > 0 and len(subtitle_segments) != n_scenes:
+        total_dur = subtitle_segments[-1]['end'] if subtitle_segments else voiceover_duration_seconds
+        seg_dur = total_dur / n_scenes
+        subtitle_segments = [
+            {"text": "", "start": round(i * seg_dur, 2), "end": round((i + 1) * seg_dur, 2)}
+            for i in range(n_scenes)
+        ]
+        logger.info(f"[Remotion] Normalized subtitle_segments → {n_scenes} to match scene_descriptors")
+
+    _set_progress(job_id, 78, "Rendering video")
+
+    # ── Call Remotion render service ─────────────────────────────────────
+    remotion_url = os.getenv("REMOTION_SERVICE_URL", "http://localhost:3001")
+    render_payload = {
+        "voiceover_url": voiceover_s3_url, "bgm_url": bgm_url,
+        "client_logo_url": client_logo_url, "user_logo_url": user_logo_url,
+        "company_name": company_name or "", "sender_name": sender_name or "",
+        "cta_text": _infer_cta_text(dialogue),
+        "subtitle_segments": subtitle_segments, "caption_segments": caption_segments,
+        "scene_descriptors": scene_descriptors,
+        "voiceover_duration_seconds": voiceover_duration_seconds,
+        "show_captions": show_captions,
+        "output_filename": f"remotion_{int(time.time())}.mp4",
+    }
+
+    # ─── STEP 6: Remotion Render Payload ─────────────────────────────────
+    logger.info("━" * 60)
+    logger.info("STEP 6 ─ REMOTION RENDER PAYLOAD")
+    logger.info(f"  remotion service: {remotion_url}/render")
+    logger.info(f"  voiceover_url:    {render_payload['voiceover_url']}")
+    logger.info(f"  bgm_url:          {render_payload['bgm_url']}")
+    logger.info(f"  user_logo_url:    {render_payload['user_logo_url']}")
+    logger.info(f"  sender_name:      {render_payload['sender_name']}")
+    logger.info(f"  cta_text:         {render_payload['cta_text']}")
+    logger.info(f"  duration:         {voiceover_duration_seconds:.2f}s")
+    logger.info(f"  show_captions:    {show_captions}")
+    logger.info(f"  scene_descriptors ({len(scene_descriptors)}):")
+    for i, sd in enumerate(scene_descriptors):
+        bg = sd.get('background_video_url') or sd.get('background_image_url') or '(none)'
+        logger.info(
+            f"    [{i}] template={sd.get('template')}  headline=\"{sd.get('headline')}\"  "
+            f"accent={sd.get('accent_color')}  bg={bg[:70]}"
+        )
+    logger.info(f"  caption_segments ({len(caption_segments)}):")
+    for s in caption_segments:
+        logger.info(f"    {s['start']:.1f}s–{s['end']:.1f}s  \"{s['text'].strip()}\"")
+    logger.info("━" * 60)
+    logger.info(f"{_LOG_REMOTION} Sending render job to {remotion_url}/render ...")
+    render_result = _asyncio.run(_call_remotion_render(remotion_url, render_payload, _LOG_REMOTION))
+    if isinstance(render_result, dict) and "error" in render_result:
+        return render_result
+
+    rendered_mp4_path = render_result["output_path"]
+    file_size = render_result.get("file_size_bytes", 0)
+    total_duration = render_result.get("duration_seconds", voiceover_duration_seconds)
+    logger.info(f"{_LOG_REMOTION} Render complete: {rendered_mp4_path} ({file_size} bytes)")
+
+    _set_progress(job_id, 93, "Uploading to cloud")
+    video_url, s3_key, s3_bucket = _upload_video_to_s3(rendered_mp4_path, _LOG_REMOTION)
+
+    try:
+        if tmp_audio_path:
+            os.unlink(tmp_audio_path)
+        os.unlink(rendered_mp4_path)
+    except Exception as cleanup_err:
+        logger.warning(f"{_LOG_REMOTION} Failed to delete temp files: {cleanup_err}")
+
+    subscription_service.increment_usage(user_id, "videos", 1)
+    video_id = _save_remotion_video_metadata(
+        user_id, video_url, s3_key, s3_bucket, company_name, dialogue,
+        template_video_url, client_logo_url, user_logo_url, bgm_url,
+        total_duration, file_size, video_title, social_caption, voice_id,
+    )
+
+    # ─── STEP 7: Final Output ─────────────────────────────────────────────
+    logger.info("━" * 60)
+    logger.info("STEP 7 ─ FINAL OUTPUT")
+    logger.info(f"  video_url:  {video_url}")
+    logger.info(f"  video_id:   {video_id}")
+    logger.info(f"  duration:   {total_duration:.2f}s")
+    logger.info(f"  file_size:  {file_size} bytes ({file_size // 1024} KB)")
+    logger.info(f"  s3_key:     {s3_key}")
+    logger.info("━" * 60)
+    _set_progress(job_id, 100, "Done")
+    return {
+        "success": True, "video_url": video_url, "video_id": video_id,
+        "engine": "remotion", "duration_seconds": total_duration,
+        "scene_descriptors": scene_descriptors, "subtitle_segments": subtitle_segments,
+        "message": "Remotion video generated successfully with frame-accurate audio sync",
+    }
+
+
 @router.post(
     "/video-remotion",
     responses={401: {"description": _AUTH_REQUIRED}, 403: {"description": "Limit exceeded"}},
 )
 async def generate_video_remotion_endpoint(request: Request, user_info: CurrentUser):
-    """Generate AI video using Remotion rendering engine (frame-accurate audio sync)"""
-    try:
-        body = await request.json()
-        dialogue = body.get("dialogue")
-        company_name = body.get("company_name", "")
-        video_title = body.get("video_title", "")
-        social_caption = body.get("social_caption", "")
-        client_logo_url = body.get("client_logo_url", "")
-        user_logo_url = body.get("user_logo_url", "")
-        template_video_url = body.get("template_video", _DEFAULT_TEMPLATE)
-        bgm_url = body.get("bgm", _DEFAULT_BGM)
-        voice_id = body.get("voice_id", "")
-        show_captions = body.get("show_captions", True)
-        job_id        = body.get("job_id", "")
-        use_veo3      = bool(body.get("use_veo3", False))
-        fal_model     = body.get("fal_model", "fal-ai/kling-video/v1.6/standard/text-to-video")
-        clip_duration = int(body.get("clip_duration", 5))
+    """Enqueue video render as a Celery task. Returns job_id immediately (<100ms)."""
+    body = await request.json()
+    job_id = body.get("job_id") or str(uuid.uuid4())
 
-        user_id: str = user_info.get('user_id') or ""
-        logger.info(f"{_LOG_REMOTION} Video request from: {user_info.get('email', 'unknown')}, company: {company_name}, use_veo3={use_veo3}")
+    # Circular-import guard: import inside function, not at module level.
+    # worker/celery_app.py does NOT import from routes/ — safe.
+    from worker.video_tasks import render_video_task  # noqa: PLC0415
 
-        # Resolve per-channel model config
-        channel_id = body.get("channel_id")   # optional — None = user-level config
-        cfg = resolve_model_config(user_id, channel_id)
-        # Request body fal_model wins if non-empty; video_bg_provider config as fallback
-        effective_fal_model = body.get("fal_model") or cfg.fal_model_id
+    task = render_video_task.delay(
+        user_id=user_info.get("user_id", ""),
+        job_id=job_id,
+        body=body,
+    )
 
-        if not dialogue:
-            return {"error": _DIALOGUE_REQUIRED}
-
-        _set_progress(job_id, 5, "Starting")
-        _check_video_usage_limit(user_id)
-
-        if company_name and _COMPANY_NAME_PLACEHOLDER in dialogue:
-            dialogue = dialogue.replace(_COMPANY_NAME_PLACEHOLDER, company_name)
-
-        _set_progress(job_id, 12, "Resolving logos")
-        client_logo_url, user_logo_url, sender_name = _resolve_video_logos(
-            user_id, company_name, client_logo_url, user_logo_url
-        )
-
-        # ── Audio pipeline (voiceover + subtitles + scene descriptors) ──────
-        _set_progress(job_id, 18, "Preparing audio")
-        voiceover_s3_url, subtitle_segments, scene_descriptors, voiceover_duration_seconds, tmp_audio_path, caption_segments = \
-            await _prepare_remotion_audio(
-                body.get("voiceover_url", ""), body.get("subtitle_segments", []),
-                body.get("voiceover_duration_seconds", 0), body.get("scene_descriptors", []),
-                dialogue, company_name, _LOG_REMOTION, voice_id,
-                precomputed_caption_segments=body.get("caption_segments", []),
-            )
-        _set_progress(job_id, 52, "Scene plan ready")
-
-        # ── Enrich scenes (brand color + news hook + Veo3/DALL-E) ────────────
-        _set_progress(job_id, 55, "Generating backgrounds", "0 scenes done")
-        # dalle3 provider: route to DALL-E backgrounds (use_veo3=False, fal_model="dalle")
-        if cfg.video_bg_provider == "dalle3" and not body.get("fal_model"):
-            scene_descriptors = _enrich_scene_descriptors_for_remotion(
-                scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
-                job_id=job_id, use_veo3=False,
-                dialogue=dialogue, sender_name=sender_name,
-                fal_model="dalle", clip_duration=clip_duration,
-            )
-        else:
-            scene_descriptors = _enrich_scene_descriptors_for_remotion(
-                scene_descriptors, client_logo_url, company_name, os.getenv("OPENAI_API_KEY", ""),
-                job_id=job_id, use_veo3=use_veo3,
-                dialogue=dialogue, sender_name=sender_name,
-                fal_model=effective_fal_model, clip_duration=clip_duration,
-            )
-
-        # If AI video failed, expand to 3 DALL-E scenes
-        ai_succeeded = bool(scene_descriptors and scene_descriptors[0].get("background_video_url"))
-        if use_veo3 and not ai_succeeded and len(scene_descriptors) == 1:
-            scene_descriptors, subtitle_segments = _expand_to_three_dalle_scenes(
-                scene_descriptors, subtitle_segments, voiceover_duration_seconds,
-                os.getenv("OPENAI_API_KEY", ""),
-            )
-
-        # Normalize subtitle_segments count to match scene_descriptors so Remotion
-        # never falls back to FALLBACK_SPEC (which has no background fields).
-        n_scenes = len(scene_descriptors)
-        if n_scenes > 0 and len(subtitle_segments) != n_scenes:
-            total_dur = subtitle_segments[-1]['end'] if subtitle_segments else voiceover_duration_seconds
-            seg_dur = total_dur / n_scenes
-            subtitle_segments = [
-                {"text": "", "start": round(i * seg_dur, 2), "end": round((i + 1) * seg_dur, 2)}
-                for i in range(n_scenes)
-            ]
-            logger.info(f"[Remotion] Normalized subtitle_segments → {n_scenes} to match scene_descriptors")
-
-        _set_progress(job_id, 78, "Rendering video")
-
-        # ── Call Remotion render service ─────────────────────────────────────
-        remotion_url = os.getenv("REMOTION_SERVICE_URL", "http://localhost:3001")
-        render_payload = {
-            "voiceover_url": voiceover_s3_url, "bgm_url": bgm_url,
-            "client_logo_url": client_logo_url, "user_logo_url": user_logo_url,
-            "company_name": company_name or "", "sender_name": sender_name or "",
-            "cta_text": _infer_cta_text(dialogue),
-            "subtitle_segments": subtitle_segments, "caption_segments": caption_segments,
-            "scene_descriptors": scene_descriptors,
-            "voiceover_duration_seconds": voiceover_duration_seconds,
-            "show_captions": show_captions,
-            "output_filename": f"remotion_{int(time.time())}.mp4",
-        }
-
-        # ─── STEP 6: Remotion Render Payload ─────────────────────────────────
-        logger.info("━" * 60)
-        logger.info("STEP 6 ─ REMOTION RENDER PAYLOAD")
-        logger.info(f"  remotion service: {remotion_url}/render")
-        logger.info(f"  voiceover_url:    {render_payload['voiceover_url']}")
-        logger.info(f"  bgm_url:          {render_payload['bgm_url']}")
-        logger.info(f"  user_logo_url:    {render_payload['user_logo_url']}")
-        logger.info(f"  sender_name:      {render_payload['sender_name']}")
-        logger.info(f"  cta_text:         {render_payload['cta_text']}")
-        logger.info(f"  duration:         {voiceover_duration_seconds:.2f}s")
-        logger.info(f"  show_captions:    {show_captions}")
-        logger.info(f"  scene_descriptors ({len(scene_descriptors)}):")
-        for i, sd in enumerate(scene_descriptors):
-            bg = sd.get('background_video_url') or sd.get('background_image_url') or '(none)'
-            logger.info(
-                f"    [{i}] template={sd.get('template')}  headline=\"{sd.get('headline')}\"  "
-                f"accent={sd.get('accent_color')}  bg={bg[:70]}"
-            )
-        logger.info(f"  caption_segments ({len(caption_segments)}):")
-        for s in caption_segments:
-            logger.info(f"    {s['start']:.1f}s–{s['end']:.1f}s  \"{s['text'].strip()}\"")
-        logger.info("━" * 60)
-        logger.info(f"{_LOG_REMOTION} Sending render job to {remotion_url}/render ...")
-        render_result = await _call_remotion_render(remotion_url, render_payload, _LOG_REMOTION)
-        if isinstance(render_result, dict) and "error" in render_result:
-            return render_result
-
-        rendered_mp4_path = render_result["output_path"]
-        file_size = render_result.get("file_size_bytes", 0)
-        total_duration = render_result.get("duration_seconds", voiceover_duration_seconds)
-        logger.info(f"{_LOG_REMOTION} Render complete: {rendered_mp4_path} ({file_size} bytes)")
-
-        _set_progress(job_id, 93, "Uploading to cloud")
-        video_url, s3_key, s3_bucket = _upload_video_to_s3(rendered_mp4_path, _LOG_REMOTION)
-
-        try:
-            if tmp_audio_path:
-                os.unlink(tmp_audio_path)
-            os.unlink(rendered_mp4_path)
-        except Exception as cleanup_err:
-            logger.warning(f"{_LOG_REMOTION} Failed to delete temp files: {cleanup_err}")
-
-        subscription_service.increment_usage(user_id, "videos", 1)
-        video_id = _save_remotion_video_metadata(
-            user_id, video_url, s3_key, s3_bucket, company_name, dialogue,
-            template_video_url, client_logo_url, user_logo_url, bgm_url,
-            total_duration, file_size, video_title, social_caption, voice_id,
-        )
-
-        # ─── STEP 7: Final Output ─────────────────────────────────────────────
-        logger.info("━" * 60)
-        logger.info("STEP 7 ─ FINAL OUTPUT")
-        logger.info(f"  video_url:  {video_url}")
-        logger.info(f"  video_id:   {video_id}")
-        logger.info(f"  duration:   {total_duration:.2f}s")
-        logger.info(f"  file_size:  {file_size} bytes ({file_size // 1024} KB)")
-        logger.info(f"  s3_key:     {s3_key}")
-        logger.info("━" * 60)
-        _set_progress(job_id, 100, "Done")
-        return {
-            "success": True, "video_url": video_url, "video_id": video_id,
-            "engine": "remotion", "duration_seconds": total_duration,
-            "scene_descriptors": scene_descriptors, "subtitle_segments": subtitle_segments,
-            "message": "Remotion video generated successfully with frame-accurate audio sync",
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"{_LOG_REMOTION} Unexpected error: {e}")
-        logger.exception(f"{_LOG_REMOTION} Unexpected error:")
-        return {"error": f"Remotion video generation failed: {str(e)}"}
+    _set_progress(job_id, 0, "queued")
+    return {"task_id": task.id, "job_id": job_id, "status": "queued"}
 
 
 @router.post(

@@ -20,6 +20,10 @@ services:
     env_file:
       - path: backend/.env
         required: false
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - REDIS_URL=redis://redis:6379/2
     depends_on:
       redis:
         condition: service_healthy
@@ -33,3 +37,29 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --concurrency=2 -Q video
+    restart: unless-stopped
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - REDIS_URL=redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ── Flower (Celery monitoring UI) — uncomment to enable ──────────────────
+  # flower:
+  #   image: mher/flower:2.0
+  #   command: celery --broker=redis://redis:6379/0 flower --port=5555
+  #   ports:
+  #     - "5555:5555"
+  #   depends_on:
+  #     - redis
