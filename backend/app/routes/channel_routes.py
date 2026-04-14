@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from utils.middleware.auth_middleware import auth_middleware
 from utils.mongodb_service import mongodb_service
+from worker.scheduler import sync_channel
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +117,15 @@ def update_channel(channel_id: str, body: ChannelUpdate, user_id: CurrentUser):
         raise HTTPException(status_code=422, detail=f"posting_frequency must be one of {sorted(POSTING_FREQUENCIES)}")
 
     updates["updated_at"] = datetime.now(timezone.utc)
+    existing_doc = _col().find_one({"_id": oid, "user_id": user_id}) or {}
     result = _col().update_one({"_id": oid, "user_id": user_id}, {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Channel not found")
+
+    # Sync scheduler with merged state
+    effective_auto_post = updates.get("auto_post", existing_doc.get("auto_post", False))
+    effective_frequency = updates.get("posting_frequency", existing_doc.get("posting_frequency", "weekly"))
+    sync_channel(channel_id, bool(effective_auto_post), str(effective_frequency))
     return {"success": True}
 
 

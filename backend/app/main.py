@@ -38,11 +38,13 @@ from routes.channel_routes import router as channels_router
 from routes.model_config_routes import router as model_config_router
 from routes.chat_routes import router as chat_router
 from routes.seedance_routes import router as seedance_router
+from routes.analytics_routes import router as analytics_router
 
 # Import services for startup
 from utils.db_init import init_collections
 from utils.integrations_service import integrations_service
 from utils.mongodb_service import mongodb_service
+from worker.scheduler import scheduler_lifespan as _scheduler_lifespan
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -111,6 +113,7 @@ app.include_router(channels_router)
 app.include_router(model_config_router)
 app.include_router(chat_router)
 app.include_router(seedance_router)
+app.include_router(analytics_router)
 
 # Startup event
 @app.on_event("startup")
@@ -143,8 +146,26 @@ async def startup_event():
             logger.warning("⚠️  WARNING: MongoDB connection timeout - continuing without DB")
         except Exception as e:
             logger.warning(f"⚠️  WARNING: Service initialization warning: {e}")
+
+        # Start APScheduler (non-blocking — uses asynccontextmanager pattern adapted for startup)
+        try:
+            app.state.scheduler_ctx = _scheduler_lifespan()
+            await app.state.scheduler_ctx.__aenter__()
+            logger.info("✅ APScheduler started")
+        except Exception as e:
+            logger.warning(f"⚠️  WARNING: APScheduler startup failed (non-fatal): {e}")
     except Exception as e:
         logger.error(f"❌ ERROR: Error during startup: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    ctx = getattr(app.state, "scheduler_ctx", None)
+    if ctx is not None:
+        try:
+            await ctx.__aexit__(None, None, None)
+        except Exception:
+            pass
 
 # Health check endpoints
 # Root: serve the frontend SPA
