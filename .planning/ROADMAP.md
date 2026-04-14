@@ -40,7 +40,7 @@
 |-------|------|------|--------|
 | 04 | AI Model Layer | Complete    | 2026-04-13 |
 | 05 | Celery Workers | Complete    | 2026-04-14 |
-| 06 | Shorts + TikTok | Remotion 9:16 composition, TikTok Content Posting API v2 | Backlog |
+| 06 | Shorts + TikTok | Complete    | 2026-04-14 |
 | 07 | UI/UX Redesign | Channel dashboard, pipeline builder, model picker | Backlog |
 
 ### Phase 04: AI Model Layer
@@ -73,7 +73,7 @@ Plans:
 
 **Requirements:** SHORTS-01, SHORTS-02, SHORTS-03, SHORTS-04
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — Remotion SSR render pipeline (replace 501 stub) + SocialFlowVideoShorts 1080x1920 composition + both registered in index.tsx + pinned package versions
