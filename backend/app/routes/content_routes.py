@@ -41,6 +41,7 @@ from utils.subscription_service import subscription_service
 from utils.user_service import user_service
 from utils.video import generate_video
 from utils.videos_service import videos_service
+from utils.tiktok_post_helper import post_video_to_tiktok
 from utils.youtube_post_helper import post_video_to_youtube
 
 logger = logging.getLogger(__name__)
@@ -2724,4 +2725,55 @@ async def post_video_to_youtube_route(request: Request, user_info: CurrentUser):
             "error": f"Failed to post to YouTube: {str(e)}"
         }
 
+
+@router.post(
+    "/post-to-tiktok",
+    responses={401: {"description": _AUTH_REQUIRED}},
+)
+async def post_video_to_tiktok_route(request: Request, user_info: CurrentUser):
+    """Post generated video to TikTok using Content Posting API v2.
+
+    Accepts video_url (CloudFront/S3 URL), caption (TikTok post text), title.
+    Uses PULL_FROM_URL if domain is verified, falls back to FILE_UPLOAD otherwise.
+    Privacy defaults to SELF_ONLY for unaudited TikTok apps.
+    """
+    try:
+        body = await request.json()
+        video_url = body.get("video_url")
+        caption = body.get("caption", "")
+        title = body.get("title", "AI Generated Video")
+
+        logger.info(f"TikTok post request from user: {user_info['email']}")
+        logger.info(f"TikTok video URL: {video_url}")
+
+        if not video_url:
+            return {"success": False, "error": _VIDEO_URL_REQUIRED}
+
+        try:
+            local_path, temp_file = _resolve_video_to_local_path(video_url, tmp_prefix="tiktok_upload_")
+        except ValueError:
+            return {
+                "success": False,
+                "error": f"Unsupported video URL format: {video_url}",
+                "hint": _VIDEO_URL_HINT
+            }
+        except Exception as download_error:
+            logger.error(f"Failed to download video for TikTok: {download_error}")
+            return {
+                "success": False,
+                "error": f"Failed to download video: {str(download_error)}",
+                "hint": _CLOUDFRONT_HINT
+            }
+
+        try:
+            result = post_video_to_tiktok(local_path, caption, title, user_id=user_info['user_id'])
+        finally:
+            _cleanup_temp(local_path, temp_file)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error posting to TikTok: {e}")
+        logger.exception("Error posting to TikTok:")
+        return {"success": False, "error": str(e)}
 
