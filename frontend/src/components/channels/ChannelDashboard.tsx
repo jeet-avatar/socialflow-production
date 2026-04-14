@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Settings, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { Plus, Settings, ToggleLeft, ToggleRight, Loader2, BarChart2 } from 'lucide-react';
 import { getAuthHeaders } from '../../utils/getAuthToken';
 import { API_BASE_URL } from '../../config/api';
+import { ChannelAnalytics } from './ChannelAnalytics';
 
 interface Channel {
   id: string;
@@ -44,6 +45,8 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [activeTab, setActiveTab] = useState<'channels' | 'analytics'>('channels');
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -148,8 +151,45 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
         </button>
       </div>
 
-      {/* Body */}
-      {loading ? (
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-white/[0.07]">
+        <button
+          onClick={() => setActiveTab('channels')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'channels'
+              ? 'text-teal-400 border-b-2 border-teal-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          Channels
+        </button>
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'analytics'
+              ? 'text-teal-400 border-b-2 border-teal-400'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {/* Analytics tab content */}
+      {activeTab === 'analytics' && (
+        <div className="p-4">
+          {selectedChannelId ? (
+            <ChannelAnalytics channelId={selectedChannelId} />
+          ) : (
+            <p className="text-gray-500 text-sm text-center py-8">
+              Select a channel to view analytics.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Channels tab body */}
+      {activeTab === 'channels' && loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
         </div>
@@ -213,14 +253,24 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => onOpenPipeline(channel.id)}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5 text-xs text-dark-text-muted hover:border-white/[0.14] hover:text-dark-text transition-all"
-                >
-                  <Settings className="h-3.5 w-3.5" />
-                  Configure Pipeline
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedChannelId(channel.id); setActiveTab('analytics'); }}
+                    className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5 text-xs text-dark-text-muted hover:border-white/[0.14] hover:text-dark-text transition-all"
+                  >
+                    <BarChart2 className="h-3.5 w-3.5" />
+                    Analytics
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOpenPipeline(channel.id)}
+                    className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5 text-xs text-dark-text-muted hover:border-white/[0.14] hover:text-dark-text transition-all"
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                    Configure Pipeline
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))}
