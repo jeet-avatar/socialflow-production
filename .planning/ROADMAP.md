@@ -39,7 +39,7 @@
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
 | 04 | AI Model Layer | Complete    | 2026-04-13 |
-| 05 | Celery Workers | Async video generation pipeline, queue management, retry logic | Planned |
+| 05 | Celery Workers | Complete    | 2026-04-14 |
 | 06 | Shorts + TikTok | Remotion 9:16 composition, TikTok Content Posting API v2 | Backlog |
 | 07 | UI/UX Redesign | Channel dashboard, pipeline builder, model picker | Backlog |
 
@@ -62,7 +62,7 @@ Plans:
 
 **Requirements:** CELERY-01, CELERY-02, CELERY-03, CELERY-04, CELERY-05
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 05-01-PLAN.md — celery_app.py + redis_client.py + video_tasks.py + content_routes refactor + docker-compose celery_worker + unit tests
