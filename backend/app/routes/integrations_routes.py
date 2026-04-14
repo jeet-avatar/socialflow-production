@@ -760,3 +760,121 @@ async def youtube_oauth_callback(code: str, state: str, request: Request):
             url=f"{FRONTEND_URL}/integrations?youtube_auth=error&message={e}",
             status_code=302,
         )
+
+
+# ---------------------------------------------------------------------------
+# TikTok OAuth 2.0 PKCE flow
+# ---------------------------------------------------------------------------
+
+def _generate_tiktok_pkce_pair():
+    """Generate PKCE code_verifier and code_challenge (S256 method)."""
+    import hashlib, secrets, base64 as _b64
+    code_verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(code_verifier.encode()).digest()
+    code_challenge = _b64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+    return code_verifier, code_challenge
+
+
+@router.get(
+    "/tiktok/oauth/authorize",
+    responses={
+        400: {"description": "TikTok not configured"},
+        401: {"description": "Authentication required"},
+        500: {"description": "Internal server error"},
+    },
+)
+async def tiktok_oauth_authorize(request: Request, user_id: CurrentUser):
+    """Initiate TikTok OAuth2 PKCE flow — returns authorization_url."""
+    try:
+        integration = integrations_service.get_integration(user_id, "tiktok", decrypt=True)
+        if not integration or not integration.get("credentials"):
+            raise HTTPException(status_code=400, detail="Please configure TikTok Client Key and Secret in Integrations first")
+        creds = integration["credentials"]
+        client_key = creds.get("clientKey")
+        client_secret = creds.get("clientSecret")  # stored but not used in authorize step
+        if not client_key or not client_secret:
+            raise HTTPException(status_code=400, detail="TikTok Client Key and Secret not configured")
+
+        code_verifier, code_challenge = _generate_tiktok_pkce_pair()
+        redirect_uri = f"{BACKEND_URL}/api/integrations/tiktok/oauth/callback"
+        state_data = json.dumps({"user_id": user_id, "code_verifier": code_verifier})
+        state = base64.urlsafe_b64encode(state_data.encode()).decode()
+
+        auth_url = (
+            "https://www.tiktok.com/v2/auth/authorize/"
+            f"?client_key={client_key}"
+            f"&scope=video.publish"
+            f"&response_type=code"
+            f"&redirect_uri={redirect_uri}"
+            f"&state={state}"
+            f"&code_challenge={code_challenge}"
+            f"&code_challenge_method=S256"
+        )
+        return {"success": True, "authorization_url": auth_url, "state": state}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"TikTok OAuth authorize error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to initiate TikTok OAuth: {e}")
+
+
+@router.get(
+    "/tiktok/oauth/callback",
+    responses={
+        400: {"description": "Invalid state, missing integration, or token exchange failure"},
+        500: {"description": "Internal server error"},
+    },
+)
+async def tiktok_oauth_callback(code: str, state: str, request: Request):
+    """TikTok OAuth2 callback — exchange code for tokens and store credentials."""
+    try:
+        import time as _time
+        try:
+            state_obj = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
+            user_id = state_obj.get("user_id")
+            code_verifier = state_obj.get("code_verifier")
+        except Exception as e:
+            logger.error(f"Failed to decode TikTok state: {e}")
+            raise HTTPException(status_code=400, detail="Invalid state parameter")
+
+        integration = integrations_service.get_integration(user_id, "tiktok", decrypt=True)
+        if not integration or not integration.get("credentials"):
+            raise HTTPException(status_code=400, detail="TikTok integration not found")
+        creds = integration["credentials"]
+        client_key = creds.get("clientKey")
+        client_secret = creds.get("clientSecret")
+        redirect_uri = f"{BACKEND_URL}/api/integrations/tiktok/oauth/callback"
+
+        import requests as _req
+        resp = _req.post(
+            "https://open.tiktokapis.com/v2/oauth/token/",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data={
+                "client_key": client_key,
+                "client_secret": client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
+                "code_verifier": code_verifier,
+            },
+            timeout=30,
+        )
+        data = resp.json()
+        if resp.status_code != 200 or "access_token" not in data:
+            logger.error(f"TikTok token exchange failed: {data}")
+            raise HTTPException(status_code=400, detail=f"TikTok token exchange failed: {data.get('message', 'Unknown error')}")
+
+        creds["accessToken"] = data["access_token"]
+        creds["refreshToken"] = data["refresh_token"]
+        creds["openId"] = data["open_id"]
+        creds["tokenExpiresAt"] = int(_time.time()) + data.get("expires_in", 86400)
+        integrations_service.save_integration(
+            user_id=user_id, platform="tiktok", credentials=creds, is_connected=True
+        )
+        logger.info(f"TikTok tokens saved for user {user_id} (open_id={data['open_id']})")
+        return RedirectResponse(url=f"{FRONTEND_URL}/integrations?tiktok_auth=success", status_code=302)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"TikTok OAuth callback error: {e}")
+        return RedirectResponse(url=f"{FRONTEND_URL}/integrations?tiktok_auth=error&message={str(e)}", status_code=302)
