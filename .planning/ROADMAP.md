@@ -67,6 +67,29 @@ Plans:
 Plans:
 - [ ] 05-01-PLAN.md — celery_app.py + redis_client.py + video_tasks.py + content_routes refactor + docker-compose celery_worker + unit tests
 
+### Phase 06: Shorts + TikTok
+
+**Goal:** Add vertical 9:16 Remotion composition for YouTube Shorts / TikTok and wire the TikTok Content Posting API v2 so channels can auto-publish short-form videos alongside their existing 16:9 content.
+
+**Requirements:** SHORTS-01, SHORTS-02, SHORTS-03, SHORTS-04
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Remotion SSR render pipeline (replace 501 stub) + SocialFlowVideoShorts 1080x1920 composition + both registered in index.tsx + pinned package versions
+- [ ] 06-02-PLAN.md — TikTok OAuth PKCE flow (authorize + callback) added to integrations_routes.py; stores accessToken/refreshToken/openId/tokenExpiresAt
+- [ ] 06-03-PLAN.md — tiktok_post_helper.py (token refresh + PULL_FROM_URL + FILE_UPLOAD fallback) + POST /post-to-tiktok route + 7 unit tests
+
+---
+
+### Phase 07: UI/UX Redesign
+
+**Goal:** Redesign the channel dashboard, pipeline builder, and model picker so creators can configure and monitor their content channels without needing developer access.
+
+**Requirements:** UI-01, UI-02, UI-03
+
+**Plans:** 0/0 plans
+
 ---
 
 ## Wave 3 — Quality (Parallel)
