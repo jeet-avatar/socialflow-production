@@ -32,6 +32,12 @@ NEW_COLLECTIONS = {
             "unique": True,
         },
     ],
+    "platform_posts": [
+        {"key": [("channel_id", ASCENDING)], "name": "pp_channel_id"},
+        {"key": [("user_id", ASCENDING)], "name": "pp_user_id"},
+        {"key": [("channel_id", ASCENDING), ("platform", ASCENDING)], "name": "pp_channel_platform"},
+        {"key": [("posted_at", DESCENDING)], "name": "pp_posted_at"},
+    ],
 }
 
 
