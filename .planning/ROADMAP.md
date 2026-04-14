@@ -113,7 +113,7 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — APScheduler lifespan + scheduler.py + channel_routes.py sync_channel wiring + main.py startup/shutdown (SCHED-01, SCHED-02, SCHED-03) ✅ 2026-04-14
-- [ ] 08-02-PLAN.md — analytics_fetcher.py (4 platform stats functions) + analytics_routes.py (GET/POST) + platform_posts collection in db_init.py (ANALYTICS-01)
+- [x] 08-02-PLAN.md — analytics_fetcher.py (4 platform stats functions) + analytics_routes.py (GET/POST) + platform_posts collection in db_init.py (ANALYTICS-01) ✅ 2026-04-14
 - [ ] 08-03-PLAN.md — ChannelAnalytics.tsx (recharts LineChart + BarChart + Refresh button) + ChannelDashboard.tsx Analytics tab (ANALYTICS-02)
 
 ---
