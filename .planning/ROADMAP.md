@@ -88,7 +88,11 @@ Plans:
 
 **Requirements:** UI-01, UI-02, UI-03
 
-**Plans:** 0/0 plans
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — ChannelDashboard.tsx (channel list + create modal + auto_post toggle) + ModelPicker.tsx (reusable provider selector cards)
+- [ ] 07-02-PLAN.md — PipelineBuilder.tsx (per-channel pipeline config with ModelPicker) + Dashboard.tsx integration (Channels nav + tab + overlay)
 
 ---
 
