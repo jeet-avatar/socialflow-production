@@ -76,7 +76,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Remotion SSR render pipeline (replace 501 stub) + SocialFlowVideoShorts 1080x1920 composition + both registered in index.tsx + pinned package versions
+- [x] 06-01-PLAN.md — Remotion SSR render pipeline (replace 501 stub) + SocialFlowVideoShorts 1080x1920 composition + both registered in index.tsx + pinned package versions
 - [ ] 06-02-PLAN.md — TikTok OAuth PKCE flow (authorize + callback) added to integrations_routes.py; stores accessToken/refreshToken/openId/tokenExpiresAt
 - [ ] 06-03-PLAN.md — tiktok_post_helper.py (token refresh + PULL_FROM_URL + FILE_UPLOAD fallback) + POST /post-to-tiktok route + 7 unit tests
 

@@ -9,12 +9,13 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 06-shorts-tiktok (Plan 02 complete ✅)
-Plan: Wave 2 in progress — Phase 06 Plan 02 executed 2026-04-14
-Status: 06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py. GET /tiktok/oauth/authorize returns auth URL; GET /tiktok/oauth/callback exchanges code and stores accessToken/refreshToken/openId/tokenExpiresAt.
-Last activity: 2026-04-14 — Phase 06-02 executed: backend/app/routes/integrations_routes.py
+Phase: 06-shorts-tiktok (Plans 01+02 complete ✅)
+Plan: Wave 2 in progress — Phase 06 Plans 01+02 executed 2026-04-14
+Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
+       06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
+Last activity: 2026-04-14 — Phase 06-01 executed: render-server.ts SSR pipeline, SocialFlowVideoShorts.tsx, index.tsx dual compositions, package.json pinned remotion@4.0.435
 
-Progress: [███████████████░░░░░] ~50% (Wave 1 complete, Wave 2 phases 04+05+06-02 done)
+Progress: [████████████████░░░░] ~55% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02 done)
 
 ## Completed Milestones
 
@@ -55,6 +56,9 @@ Progress: [███████████████░░░░░] ~50% (W
 - [2026-04-14]: TikTok PKCE: inline `import requests as _req` in callback to avoid shadowing module-level requests import
 - [2026-04-14]: TikTok state: base64 JSON encodes {user_id, code_verifier} — same pattern as YouTube OAuth
 - [2026-04-14]: TikTok tokenExpiresAt stored as UTC epoch integer (int(time.time()) + expires_in) for easy downstream comparison
+- [2026-04-14]: Remotion compositionId defaults to SocialFlowVideo — existing callers unaffected when compositionId not passed
+- [2026-04-14]: bundle() runs once at startup (not per-request) — improves p99 render latency; 503 until bundleReady=true
+- [2026-04-14]: Safe-zone wrapper uses CSS padding (15%/8%/25%) inside AbsoluteFill for TikTok/Shorts UI chrome avoidance
 
 ### Pending Todos
 
@@ -68,5 +72,5 @@ Progress: [███████████████░░░░░] ~50% (W
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Completed Phase 06 Plan 02 (TikTok OAuth PKCE — GET /tiktok/oauth/authorize + GET /tiktok/oauth/callback in integrations_routes.py)
+Stopped at: Completed Phase 06 Plan 01 (Remotion SSR pipeline — render-server.ts real renderMedia(), SocialFlowVideoShorts 9:16 portrait, index.tsx both compositions) AND Plan 02 (TikTok OAuth PKCE)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
