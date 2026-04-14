@@ -100,7 +100,7 @@ Plans:
 
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
-| 08 | Scheduling + Analytics | Cron-based auto-posting, cross-platform metrics | Backlog |
+| 08 | Scheduling + Analytics | Complete    | 2026-04-14 |
 | 09 | Full Test Suite | 200+ test cases, E2E happy paths for all flows | Backlog |
 
 ### Phase 08: Scheduling + Analytics
@@ -109,7 +109,7 @@ Plans:
 
 **Requirements:** SCHED-01, SCHED-02, SCHED-03, ANALYTICS-01, ANALYTICS-02
 
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 08-01-PLAN.md — APScheduler lifespan + scheduler.py + channel_routes.py sync_channel wiring + main.py startup/shutdown (SCHED-01, SCHED-02, SCHED-03) ✅ 2026-04-14
