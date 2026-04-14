@@ -9,16 +9,17 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 07-ui-ux-redesign (Plan 02 complete ✅)
-Plan: Wave 2 in progress — Phase 07 Plan 02 executed 2026-04-14
+Phase: 08-scheduling-analytics (Plan 01 complete ✅)
+Plan: Wave 2 in progress — Phase 08 Plan 01 executed 2026-04-14
 Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
        06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
        06-03 COMPLETE. tiktok_post_helper.py with token refresh + PULL_FROM_URL + FILE_UPLOAD fallback; POST /post-to-tiktok route in content_routes.py; 7 unit tests all passing.
        07-01 COMPLETE. ChannelDashboard.tsx (channel list + create modal + auto-post toggle + onOpenPipeline); ModelPicker.tsx (reusable provider selector cards). TypeScript zero errors.
        07-02 COMPLETE. PipelineBuilder.tsx (per-channel AI pipeline config with 3 ModelPicker sections, save via POST /model-config); Dashboard.tsx wired with Channels nav + ChannelDashboard tab + AnimatePresence PipelineBuilder overlay.
-Last activity: 2026-04-14 — Phase 07-02 executed: PipelineBuilder.tsx, Dashboard.tsx updated
+       08-01 COMPLETE. APScheduler per-channel cron scheduling with MongoDBJobStore persistence; niche-to-dialogue generation before render_video_task dispatch; sync_channel() wired into channel PUT; scheduler lifespan + analytics_router registered in main.py.
+Last activity: 2026-04-14 — Phase 08-01 executed: scheduler.py, channel_routes.py, main.py, requirements.txt
 
-Progress: [███████████████████░] ~68% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02 done)
+Progress: [████████████████████] ~72% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01 done)
 
 ## Completed Milestones
 
@@ -72,6 +73,10 @@ Progress: [███████████████████░] ~68% (W
 - [2026-04-14]: PipelineBuilder channelId is required string (not optional) — Dashboard gates mount with activePipelineChannel && check
 - [2026-04-14]: PipelineBuilder updateConfig calls POST /model-config (upsert) — no PUT route exists in backend
 - [2026-04-14]: AnimatePresence wraps the overlay div; framer-motion motion.div inside PipelineBuilder handles slide-in animation
+- [2026-04-14]: APScheduler MongoDBJobStore persists jobs in apscheduler_jobs collection — cron jobs survive ECS restarts
+- [2026-04-14]: generate_marketing_package called inside _run_channel_pipeline BEFORE render_video_task.delay — prevents "dialogue is required" silent Celery failures
+- [2026-04-14]: SCHEDULER_ENABLED=false env var disables APScheduler on non-primary ECS tasks (multi-process distributed locking not supported)
+- [2026-04-14]: analytics_router registered in main.py in Plan 08-01 — Plan 08-02 must create analytics_routes.py before app can start successfully
 
 ### Pending Todos
 
@@ -85,5 +90,5 @@ Progress: [███████████████████░] ~68% (W
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Completed Phase 07 Plan 02 (PipelineBuilder.tsx + Dashboard.tsx wiring — fullscreen AnimatePresence overlay, Channels nav, ChannelDashboard tab, three ModelPicker sections, save via POST /model-config)
+Stopped at: Completed Phase 08 Plan 01 (APScheduler per-channel cron scheduling — scheduler.py, channel_routes.py sync_channel wiring, main.py scheduler lifespan + analytics_router registration, APScheduler==3.11.* in requirements.txt)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
