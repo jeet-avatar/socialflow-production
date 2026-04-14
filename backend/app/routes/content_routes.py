@@ -2545,6 +2545,24 @@ async def post_video_to_facebook(request: Request, user_info: CurrentUser):
 
         _cleanup_temp(local_path, temp_file)
 
+        channel_id = body.get("channel_id", "")
+        if result.get("success") and result.get("video_id") and channel_id:
+            try:
+                from datetime import datetime, timezone  # noqa: PLC0415
+                from utils.mongodb_service import mongodb_service as _mdb  # noqa: PLC0415
+                _mdb.get_database()["platform_posts"].insert_one({
+                    "channel_id":        channel_id,
+                    "user_id":           user_info["user_id"],
+                    "platform":          "facebook",
+                    "platform_video_id": result["video_id"],
+                    "posted_at":         datetime.now(timezone.utc),
+                    "last_fetched_at":   None,
+                    "stats":             {"views": 0, "likes": 0, "comments": 0},
+                })
+                logger.info(f"platform_posts: recorded facebook video_id={result['video_id']} channel={channel_id}")
+            except Exception as _pp_exc:
+                logger.warning(f"platform_posts insert failed (non-fatal): {_pp_exc}")
+
         return result
 
     except Exception as e:
@@ -2653,6 +2671,24 @@ async def post_video_to_instagram_route(request: Request, user_info: CurrentUser
         finally:
             _cleanup_temp(local_path, temp_file)
 
+        channel_id = body.get("channel_id", "")
+        if result.get("success") and result.get("media_id") and channel_id:
+            try:
+                from datetime import datetime, timezone  # noqa: PLC0415
+                from utils.mongodb_service import mongodb_service as _mdb  # noqa: PLC0415
+                _mdb.get_database()["platform_posts"].insert_one({
+                    "channel_id":        channel_id,
+                    "user_id":           user_info["user_id"],
+                    "platform":          "instagram",
+                    "platform_video_id": result["media_id"],
+                    "posted_at":         datetime.now(timezone.utc),
+                    "last_fetched_at":   None,
+                    "stats":             {"views": 0, "likes": 0, "comments": 0},
+                })
+                logger.info(f"platform_posts: recorded instagram media_id={result['media_id']} channel={channel_id}")
+            except Exception as _pp_exc:
+                logger.warning(f"platform_posts insert failed (non-fatal): {_pp_exc}")
+
         return result
 
     except Exception as e:
@@ -2714,6 +2750,24 @@ async def post_video_to_youtube_route(request: Request, user_info: CurrentUser):
             # Clean up temporary file if it was downloaded
             _cleanup_temp(local_path, temp_file)
 
+        channel_id = body.get("channel_id", "")
+        if result.get("success") and result.get("video_id") and channel_id:
+            try:
+                from datetime import datetime, timezone  # noqa: PLC0415
+                from utils.mongodb_service import mongodb_service as _mdb  # noqa: PLC0415
+                _mdb.get_database()["platform_posts"].insert_one({
+                    "channel_id":        channel_id,
+                    "user_id":           user_info["user_id"],
+                    "platform":          "youtube",
+                    "platform_video_id": result["video_id"],
+                    "posted_at":         datetime.now(timezone.utc),
+                    "last_fetched_at":   None,
+                    "stats":             {"views": 0, "likes": 0, "comments": 0},
+                })
+                logger.info(f"platform_posts: recorded youtube video_id={result['video_id']} channel={channel_id}")
+            except Exception as _pp_exc:
+                logger.warning(f"platform_posts insert failed (non-fatal): {_pp_exc}")
+
         return result
 
     except Exception as e:
@@ -2769,6 +2823,24 @@ async def post_video_to_tiktok_route(request: Request, user_info: CurrentUser):
             result = post_video_to_tiktok(local_path, caption, title, user_id=user_info['user_id'])
         finally:
             _cleanup_temp(local_path, temp_file)
+
+        channel_id = body.get("channel_id", "")
+        if result.get("success") and result.get("publish_id") and channel_id:
+            try:
+                from datetime import datetime, timezone  # noqa: PLC0415
+                from utils.mongodb_service import mongodb_service as _mdb  # noqa: PLC0415
+                _mdb.get_database()["platform_posts"].insert_one({
+                    "channel_id":        channel_id,
+                    "user_id":           user_info["user_id"],
+                    "platform":          "tiktok",
+                    "platform_video_id": result["publish_id"],
+                    "posted_at":         datetime.now(timezone.utc),
+                    "last_fetched_at":   None,
+                    "stats":             {"views": 0, "likes": 0, "comments": 0},
+                })
+                logger.info(f"platform_posts: recorded tiktok publish_id={result['publish_id']} channel={channel_id}")
+            except Exception as _pp_exc:
+                logger.warning(f"platform_posts insert failed (non-fatal): {_pp_exc}")
 
         return result
 
