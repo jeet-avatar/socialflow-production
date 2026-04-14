@@ -1,6 +1,7 @@
 import { registerRoot, Composition } from 'remotion';
 import React from 'react';
 import SocialFlowVideo, { FPS, SocialFlowVideoProps } from './compositions/SocialFlowVideo';
+import SocialFlowVideoShorts from './compositions/SocialFlowVideoShorts';
 
 const defaultProps: SocialFlowVideoProps = {
   voiceover_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
@@ -25,16 +26,31 @@ const defaultProps: SocialFlowVideoProps = {
 };
 
 const Root: React.FC = () => (
-  <Composition
-    id="SocialFlowVideo"
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    component={SocialFlowVideo as any}
-    durationInFrames={Math.ceil(defaultProps.voiceover_duration_seconds * FPS)}
-    fps={FPS}
-    width={1920}
-    height={1080}
-    defaultProps={defaultProps}
-  />
+  <>
+    {/* Landscape 16:9 — YouTube / Instagram Reels (horizontal) */}
+    <Composition
+      id="SocialFlowVideo"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      component={SocialFlowVideo as any}
+      durationInFrames={Math.ceil((defaultProps.voiceover_duration_seconds ?? 10) * FPS)}
+      fps={FPS}
+      width={1920}
+      height={1080}
+      defaultProps={defaultProps}
+    />
+
+    {/* Portrait 9:16 — TikTok / YouTube Shorts */}
+    <Composition
+      id="SocialFlowVideoShorts"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      component={SocialFlowVideoShorts as any}
+      durationInFrames={Math.ceil((defaultProps.voiceover_duration_seconds ?? 10) * FPS)}
+      fps={FPS}
+      width={1080}
+      height={1920}
+      defaultProps={defaultProps}
+    />
+  </>
 );
 
 registerRoot(Root);

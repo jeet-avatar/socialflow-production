@@ -9,10 +9,13 @@ export interface SocialFlowVideoProps {
   bgm_url: string;
   client_logo_url: string;
   user_logo_url: string;
+  template_video_url?: string;          // optional background video URL
   subtitle_segments: SubtitleSegment[];
   caption_segments?: SubtitleSegment[];  // fine-grained Whisper phrases for subtitle overlay
   scene_descriptors: TemplateSceneSpec[];
+  text_layovers?: Array<{ text: string; start: number; end: number }>;  // optional text overlays
   show_captions?: boolean;    // default true — renders SubtitleOverlay on every video
+  voiceover_duration_seconds?: number;  // total voiceover duration in seconds
 }
 
 export const FPS = 30;
