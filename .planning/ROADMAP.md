@@ -103,6 +103,29 @@ Plans:
 | 08 | Scheduling + Analytics | Cron-based auto-posting, cross-platform metrics | Backlog |
 | 09 | Full Test Suite | 200+ test cases, E2E happy paths for all flows | Backlog |
 
+### Phase 08: Scheduling + Analytics
+
+**Goal:** Add cron-based auto-posting so channels publish on a configured schedule without manual triggers, and expose cross-platform metrics (views, likes, comments) so creators can monitor performance from a single dashboard.
+
+**Requirements:** SCHED-01, SCHED-02, SCHED-03, ANALYTICS-01, ANALYTICS-02
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — APScheduler lifespan + scheduler.py + channel_routes.py sync_channel wiring + main.py startup/shutdown (SCHED-01, SCHED-02, SCHED-03)
+- [ ] 08-02-PLAN.md — analytics_fetcher.py (4 platform stats functions) + analytics_routes.py (GET/POST) + platform_posts collection in db_init.py (ANALYTICS-01)
+- [ ] 08-03-PLAN.md — ChannelAnalytics.tsx (recharts LineChart + BarChart + Refresh button) + ChannelDashboard.tsx Analytics tab (ANALYTICS-02)
+
+---
+
+### Phase 09: Full Test Suite
+
+**Goal:** Reach 80%+ test coverage with 200+ test cases covering all backend routes, Celery tasks, and E2E happy paths for all channel flows.
+
+**Requirements:** TEST-01, TEST-02, TEST-03
+
+**Plans:** 0/0 plans
+
 ---
 
 ## Wave 4 — Deployment (Sequential)
