@@ -124,7 +124,11 @@ Plans:
 
 **Requirements:** TEST-01, TEST-02, TEST-03
 
-**Plans:** 0/0 plans
+**Plans:** 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — test_analytics_routes.py (20 cases) + test_integrations_routes.py (18 cases) + test_scheduler.py (15 cases): covers Phase 08 modules with zero tests
+- [ ] 09-02-PLAN.md — test_analytics_fetcher.py (18 cases) + test_content_routes_smoke.py (10 cases) + Vitest setup + 2 frontend smoke tests + CI hardening (remove || true)
 
 ---
 
