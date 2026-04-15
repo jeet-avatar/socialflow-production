@@ -9,8 +9,8 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 08-scheduling-analytics (Plan 03 complete ✅ — Phase 08 COMPLETE)
-Plan: Wave 2 in progress — Phase 08 Plan 03 executed 2026-04-14
+Phase: 09-full-test-suite (Plan 01 complete ✅)
+Plan: Wave 2 in progress — Phase 09 Plan 01 executed 2026-04-15
 Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
        06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
        06-03 COMPLETE. tiktok_post_helper.py with token refresh + PULL_FROM_URL + FILE_UPLOAD fallback; POST /post-to-tiktok route in content_routes.py; 7 unit tests all passing.
@@ -19,9 +19,10 @@ Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMe
        08-01 COMPLETE. APScheduler per-channel cron scheduling with MongoDBJobStore persistence; niche-to-dialogue generation before render_video_task dispatch; sync_channel() wired into channel PUT; scheduler lifespan + analytics_router registered in main.py.
        08-02 COMPLETE. analytics_fetcher.py (4 platform stats functions, lazy imports, TikTok N/A); analytics_routes.py (GET /posts + POST /refresh, 1h TTL); db_init.py platform_posts collection (4 indexes); content_routes.py platform_posts inserts in all 4 posting routes (non-fatal try/except).
        08-03 COMPLETE. ChannelAnalytics.tsx (recharts LineChart views/likes + BarChart comments + posts table + TikTok N/A); ChannelDashboard.tsx Analytics tab + selectedChannelId; recharts@^3.8.1 installed.
-Last activity: 2026-04-14 — Phase 08-03 executed: ChannelAnalytics.tsx (new), ChannelDashboard.tsx (Analytics tab), package.json (recharts)
+       09-01 COMPLETE. 53 new tests (20 analytics, 18 integrations, 15 scheduler); suite 29→82 tests; 3 bugs fixed in analytics_routes.py (route signature, timezone normalization, exception guard).
+Last activity: 2026-04-15 — Phase 09-01 executed: test_analytics_routes.py (20 tests), test_integrations_routes.py (18 tests), test_scheduler.py (15 tests), analytics_routes.py (3 bug fixes)
 
-Progress: [████████████████████] ~83% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01+08-02+08-03 done)
+Progress: [█████████████████████] ~87% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01+08-02+08-03+09-01 done)
 
 ## Completed Milestones
 
@@ -85,6 +86,11 @@ Progress: [████████████████████] ~83% (W
 - [2026-04-14]: STATS_TTL_SECONDS=3600 in analytics_routes.py — prevents YouTube rate limit exhaustion (10K units/day) and Instagram throttling (200/hr/token)
 - [Phase 08-03]: recharts LineChart for views/likes, BarChart for comments — distinct chart types for distinct metric types
 - [Phase 08-03]: Analytics button on channel cards sets selectedChannelId and switches tab — single-click UX
+- [Phase 09-01]: Lazy-import mock path: fetchers imported inside function body → patch at utils.analytics_fetcher.fn not routes.analytics_routes.fn
+- [Phase 09-01]: IntegrationsService test bypass: assign mock_db["integrations"] directly to service.collection to skip _ensure_connection() DNS lookup
+- [Phase 09-01]: _TESTERS dict patching: replace dict entry directly since dict holds function reference, module-level name patch is insufficient
+- [Phase 09-01]: analytics_routes.py signature fix: `user_id: str = CurrentUser` → `user_id: CurrentUser` (Depends injection vs query param default)
+- [Phase 09-01]: Timezone normalization in analytics refresh: mongomock returns naive datetimes; normalize with .replace(tzinfo=timezone.utc) before comparison
 
 ### Pending Todos
 
@@ -97,6 +103,6 @@ Progress: [████████████████████] ~83% (W
 
 ## Session Continuity
 
-Last session: 2026-04-14
-Stopped at: Completed Phase 08 Plan 03 (ChannelAnalytics.tsx recharts dashboard — LineChart views/likes, BarChart comments, Analytics tab in ChannelDashboard, TikTok N/A, recharts@^3.8.1)
+Last session: 2026-04-15
+Stopped at: Completed Phase 09 Plan 01 (test_analytics_routes.py 20 tests, test_integrations_routes.py 18 tests, test_scheduler.py 15 tests; suite 29→82 tests; 3 bugs fixed in analytics_routes.py)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
