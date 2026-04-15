@@ -9,8 +9,8 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 09-full-test-suite (Plan 01 complete ✅)
-Plan: Wave 2 in progress — Phase 09 Plan 01 executed 2026-04-15
+Phase: 09-full-test-suite (Plan 02 complete ✅ — PHASE COMPLETE)
+Plan: Wave 2 in progress — Phase 09 Plans 01+02 executed 2026-04-15
 Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
        06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
        06-03 COMPLETE. tiktok_post_helper.py with token refresh + PULL_FROM_URL + FILE_UPLOAD fallback; POST /post-to-tiktok route in content_routes.py; 7 unit tests all passing.
@@ -20,9 +20,10 @@ Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMe
        08-02 COMPLETE. analytics_fetcher.py (4 platform stats functions, lazy imports, TikTok N/A); analytics_routes.py (GET /posts + POST /refresh, 1h TTL); db_init.py platform_posts collection (4 indexes); content_routes.py platform_posts inserts in all 4 posting routes (non-fatal try/except).
        08-03 COMPLETE. ChannelAnalytics.tsx (recharts LineChart views/likes + BarChart comments + posts table + TikTok N/A); ChannelDashboard.tsx Analytics tab + selectedChannelId; recharts@^3.8.1 installed.
        09-01 COMPLETE. 53 new tests (20 analytics, 18 integrations, 15 scheduler); suite 29→82 tests; 3 bugs fixed in analytics_routes.py (route signature, timezone normalization, exception guard).
-Last activity: 2026-04-15 — Phase 09-01 executed: test_analytics_routes.py (20 tests), test_integrations_routes.py (18 tests), test_scheduler.py (15 tests), analytics_routes.py (3 bug fixes)
+       09-02 COMPLETE. 28 new tests (18 analytics_fetcher unit, 10 content_routes smoke); Vitest configured for frontend; 2 frontend smoke tests (ChannelAnalytics+ChannelDashboard); CI hardened (no || true, correct pytest path, SCHEDULER_ENABLED env). Suite 82→110 tests.
+Last activity: 2026-04-15 — Phase 09-02 executed: test_analytics_fetcher.py (18 tests), test_content_routes_smoke.py (10 tests), Vitest frontend setup (11 tests), CI hardening
 
-Progress: [█████████████████████] ~87% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01+08-02+08-03+09-01 done)
+Progress: [██████████████████████] ~92% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01+08-02+08-03+09-01+09-02 done)
 
 ## Completed Milestones
 
@@ -91,6 +92,10 @@ Progress: [█████████████████████] ~87%
 - [Phase 09-01]: _TESTERS dict patching: replace dict entry directly since dict holds function reference, module-level name patch is insufficient
 - [Phase 09-01]: analytics_routes.py signature fix: `user_id: str = CurrentUser` → `user_id: CurrentUser` (Depends injection vs query param default)
 - [Phase 09-01]: Timezone normalization in analytics refresh: mongomock returns naive datetimes; normalize with .replace(tzinfo=timezone.utc) before comparison
+- [Phase 09-02]: Google SDK stub chain: youtube_post_helper.py has top-level google.oauth2 imports — must stub google.* AND googleapiclient.* subtrees AND import utils.youtube_post_helper explicitly before patch() can traverse it
+- [Phase 09-02]: Aliased-import patch path: content_routes imports `from utils.redis_client import get_progress as _get_progress` (alias bound at import time) → patch at routes.content_routes._get_progress
+- [Phase 09-02]: Frontend smoke tests mock recharts in both ChannelAnalytics and ChannelDashboard files — ChannelDashboard imports ChannelAnalytics which imports recharts
+- [Phase 09-02]: CI hardened: pytest path fixed app/tests/ → tests/; SCHEDULER_ENABLED=false prevents APScheduler from starting in CI; JWT_SECRET_KEY added
 
 ### Pending Todos
 
@@ -104,5 +109,5 @@ Progress: [█████████████████████] ~87%
 ## Session Continuity
 
 Last session: 2026-04-15
-Stopped at: Completed Phase 09 Plan 01 (test_analytics_routes.py 20 tests, test_integrations_routes.py 18 tests, test_scheduler.py 15 tests; suite 29→82 tests; 3 bugs fixed in analytics_routes.py)
+Stopped at: Completed Phase 09 Plan 02 (test_analytics_fetcher.py 18 tests, test_content_routes_smoke.py 10 tests; Vitest frontend 11 tests; CI hardened; suite 82→110 tests)
 Resume file: ~/.claude/handoffs/2026-04-13-socialflow-seedance-api-audit.md
