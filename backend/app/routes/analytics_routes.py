@@ -50,7 +50,7 @@ def _serialize(doc: dict) -> dict:
 
 
 @router.get("/{channel_id}/posts")
-def list_channel_posts(channel_id: str, user_id: str = CurrentUser) -> list[dict[str, Any]]:
+def list_channel_posts(channel_id: str, user_id: CurrentUser) -> list[dict[str, Any]]:
     """
     Return all platform_posts for a channel, sorted newest first.
     Stats are whatever is currently cached in MongoDB (may be 0 until first refresh).
@@ -64,7 +64,7 @@ def list_channel_posts(channel_id: str, user_id: str = CurrentUser) -> list[dict
 
 
 @router.post("/{channel_id}/refresh")
-def refresh_channel_stats(channel_id: str, user_id: str = CurrentUser) -> dict[str, Any]:
+def refresh_channel_stats(channel_id: str, user_id: CurrentUser) -> dict[str, Any]:
     """
     Re-fetch stats from platform APIs for all stale posts in this channel.
     A post is considered stale if last_fetched_at is None or older than STATS_TTL_SECONDS.
@@ -95,10 +95,14 @@ def refresh_channel_stats(channel_id: str, user_id: str = CurrentUser) -> dict[s
     for post in posts:
         last_fetched = post.get("last_fetched_at")
 
-        # Skip if stats are still fresh
-        if last_fetched and last_fetched > stale_threshold:
-            skipped += 1
-            continue
+        # Skip if stats are still fresh.
+        # Normalize last_fetched to UTC-aware for comparison (mongomock may return naive datetimes).
+        if last_fetched:
+            if last_fetched.tzinfo is None:
+                last_fetched = last_fetched.replace(tzinfo=timezone.utc)
+            if last_fetched > stale_threshold:
+                skipped += 1
+                continue
 
         platform = post.get("platform", "")
         platform_video_id = post.get("platform_video_id", "")
@@ -108,7 +112,14 @@ def refresh_channel_stats(channel_id: str, user_id: str = CurrentUser) -> dict[s
             skipped += 1
             continue
 
-        new_stats = fetcher(user_id, platform_video_id)
+        try:
+            new_stats = fetcher(user_id, platform_video_id)
+        except Exception:
+            logger.warning(
+                f"analytics refresh: fetcher raised for channel={channel_id} "
+                f"platform={platform} video_id={platform_video_id} — skipping"
+            )
+            new_stats = {}
 
         # Build update — always update last_fetched_at even if stats empty
         update: dict[str, Any] = {"last_fetched_at": now}
