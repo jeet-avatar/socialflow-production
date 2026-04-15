@@ -9,8 +9,8 @@ See: .planning/PROJECT.md
 
 ## Current Position
 
-Phase: 10-production-deploy (Plan 01 complete ✅)
-Plan: Wave 2 in progress — Phase 10 Plan 01 executed 2026-04-15
+Phase: 10-production-deploy (Plan 02 complete ✅)
+Plan: Wave 2 in progress — Phase 10 Plans 01+02 executed 2026-04-15
 Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMedia); SocialFlowVideoShorts 9:16 portrait (1080x1920); both compositions registered in index.tsx; TypeScript zero errors; remotion@4.0.435 pinned.
        06-02 COMPLETE. TikTok OAuth 2.0 PKCE authorize + callback endpoints added to integrations_routes.py.
        06-03 COMPLETE. tiktok_post_helper.py with token refresh + PULL_FROM_URL + FILE_UPLOAD fallback; POST /post-to-tiktok route in content_routes.py; 7 unit tests all passing.
@@ -22,9 +22,10 @@ Status: 06-01 COMPLETE. Remotion SSR pipeline (bundle+selectComposition+renderMe
        09-01 COMPLETE. 53 new tests (20 analytics, 18 integrations, 15 scheduler); suite 29→82 tests; 3 bugs fixed in analytics_routes.py (route signature, timezone normalization, exception guard).
        09-02 COMPLETE. 28 new tests (18 analytics_fetcher unit, 10 content_routes smoke); Vitest configured for frontend; 2 frontend smoke tests (ChannelAnalytics+ChannelDashboard); CI hardened (no || true, correct pytest path, SCHEDULER_ENABLED env). Suite 82→110 tests.
        10-01 COMPLETE. CI hardening verified pre-complete from Phase 09-02 — all || true guards removed, SCHEDULER_ENABLED=false injected, build-images gated on test jobs.
-Last activity: 2026-04-15 — Phase 10-01 verified: CI pipeline fully hardened (no code changes needed — 09-02 completed this)
+       10-02 COMPLETE. SCHEDULER_ENABLED env vars in docker-compose (backend=true, celery_worker=false); /health upgraded to ping Redis/MongoDB/Celery with 2s timeouts, returns degraded not 500; README production runbook with 23-var env table, ECS SCHEDULER_ENABLED rule, exact gh workflow run deploy commands.
+Last activity: 2026-04-15 — Phase 10-02 executed: docker-compose SCHEDULER_ENABLED, /health dependency check, README runbook
 
-Progress: [███████████████████████] ~94% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01+08-02+08-03+09-01+09-02+10-01 done)
+Progress: [████████████████████████] ~96% (Wave 1 complete, Wave 2 phases 04+05+06-01+06-02+06-03+07-01+07-02+08-01+08-02+08-03+09-01+09-02+10-01+10-02 done)
 
 ## Completed Milestones
 
@@ -98,6 +99,8 @@ Progress: [███████████████████████
 - [Phase 09-02]: Frontend smoke tests mock recharts in both ChannelAnalytics and ChannelDashboard files — ChannelDashboard imports ChannelAnalytics which imports recharts
 - [Phase 09-02]: CI hardened: pytest path fixed app/tests/ → tests/; SCHEDULER_ENABLED=false prevents APScheduler from starting in CI; JWT_SECRET_KEY added
 - [Phase 10-production-deploy]: Plan 10-01 CI hardening was pre-completed by Phase 09-02; no duplicate changes needed
+- [Phase 10-production-deploy]: README.md force-added with git add -f — *.md in .gitignore was blocking; README is tracked project artifact not generated file
+- [Phase 10-production-deploy]: mongodb 'not connected' counts as healthy in /health — prevents false-degraded in CI and Remotion-only contexts
 
 ### Pending Todos
 
