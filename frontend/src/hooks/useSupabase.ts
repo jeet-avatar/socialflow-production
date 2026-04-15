@@ -4,7 +4,45 @@ import { userService } from '../services/userService';
 import { registerTokenGetter } from '../utils/getAuthToken';
 import { API_BASE_URL } from '../config/api';
 
-export const useAuth = () => {
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+
+// ── Dev bypass hook — no Clerk, returns a mock user ───────────────────────────
+const useAuthBypass = () => {
+  useEffect(() => {
+    registerTokenGetter(async () => 'dev-bypass');
+  }, []);
+  const mockUser: any = {
+    id: 'dev-bypass',
+    sub: 'dev-bypass',
+    primaryEmailAddress: { emailAddress: 'dev@local.test' },
+    fullName: 'Dev User',
+    imageUrl: null,
+  };
+  return {
+    user: mockUser,
+    profile: {
+      id: 'dev-bypass',
+      email: 'dev@local.test',
+      full_name: 'Dev User',
+      avatar_url: null,
+      company_name: null,
+      timezone: null,
+      subscription_plan: 'free',
+      subscription_status: null,
+      subscription_current_period_end: null,
+      stripe_customer_id: null,
+      created_at: null,
+      updated_at: null,
+    },
+    session: { user: mockUser, access_token: 'dev-bypass' },
+    loading: false,
+    signOut: async () => { globalThis.location.href = '/'; },
+    refreshProfile: async () => {},
+  };
+};
+
+// ── Clerk-backed hook (used when VITE_DEV_BYPASS_AUTH != 'true') ──────────────
+const useAuthClerk = () => {
   const { user, isLoaded } = useUser();
   const { getToken, isSignedIn } = useClerkAuth();
   const { signOut: clerkSignOut } = useClerk();
@@ -93,3 +131,5 @@ export const useAuth = () => {
     refreshProfile,
   };
 };
+
+export const useAuth = DEV_BYPASS ? useAuthBypass : useAuthClerk;

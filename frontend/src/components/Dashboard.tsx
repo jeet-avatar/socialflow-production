@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as leadsSearchService from '../services/leadsSearchService';
 import * as companyAnalysisService from '../services/companyAnalysisService';
-import { API_BASE_URL } from '../config/api';
-
 // ── Count-up animation hook ───────────────────────────────────────────────────
 const useCountUp = (target: number, duration = 900, active = true) => {
   const [count, setCount] = useState(0);
