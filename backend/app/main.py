@@ -182,11 +182,51 @@ async def serve_frontend_root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint — returns service dependency statuses."""
+    import asyncio
+    services: dict = {}
+
+    # Redis ping
+    try:
+        from utils.redis_client import get_redis_client
+        r = get_redis_client()
+        await asyncio.wait_for(asyncio.get_event_loop().run_in_executor(None, r.ping), timeout=2.0)
+        services["redis"] = "ok"
+    except Exception as e:
+        services["redis"] = f"error: {str(e)[:80]}"
+
+    # MongoDB ping
+    try:
+        from utils.mongodb_service import mongodb_service
+        if mongodb_service.client:
+            await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, lambda: mongodb_service.client.admin.command("ping")
+                ),
+                timeout=2.0,
+            )
+            services["mongodb"] = "ok"
+        else:
+            services["mongodb"] = "not connected"
+    except Exception as e:
+        services["mongodb"] = f"error: {str(e)[:80]}"
+
+    # Celery worker availability (non-fatal — worker may not be running in dev)
+    try:
+        from worker.celery_app import celery_app
+        inspect = celery_app.control.inspect(timeout=1.0)
+        active = inspect.active()
+        services["celery"] = "ok" if active else "no workers"
+    except Exception as e:
+        services["celery"] = f"error: {str(e)[:80]}"
+
+    all_critical_ok = services.get("redis") == "ok" and services.get("mongodb") in ("ok", "not connected")
+    overall = "healthy" if all_critical_ok else "degraded"
+
     return {
-        "status": "healthy",
-        "message": "SocialFlow API is running!",
-        "timestamp": datetime.now().isoformat()
+        "status": overall,
+        "services": services,
+        "timestamp": datetime.now().isoformat(),
     }
 
 # Serve frontend static files (production build)
