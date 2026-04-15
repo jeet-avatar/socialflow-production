@@ -136,7 +136,7 @@ Plans:
 
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
-| 10 | Production Deploy | CI hardening, SCHEDULER_ENABLED wiring, health check, deploy runbook | In Progress |
+| 10 | 1/2 | In Progress|  |
 
 ### Phase 10: Production Deploy
 
@@ -144,7 +144,7 @@ Plans:
 
 **Requirements:** DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 10-01-PLAN.md — CI hardening: remove || true soft-fails, inject SCHEDULER_ENABLED=false + JWT_SECRET_KEY into test step (DEPLOY-01, DEPLOY-02)
