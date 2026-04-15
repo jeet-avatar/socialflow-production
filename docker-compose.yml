@@ -62,6 +62,13 @@ services:
       dockerfile: backend/Dockerfile
     command: celery -A app.worker.celery_app:celery_app worker --loglevel=info --concurrency=2 -Q video
     restart: unless-stopped
+    # Override Dockerfile health check — celery worker has no HTTP port
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.worker.celery_app:celery_app", "inspect", "ping", "--timeout", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     env_file:
       - path: backend/.env
         required: false
