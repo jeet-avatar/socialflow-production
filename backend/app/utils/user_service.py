@@ -24,6 +24,7 @@ class UserService:
             # Fallback to env variable if config fails
             self.mongo_uri = os.getenv('MONGODB_URI')
 
+        _tls_opts = {"tls": True, "tlsAllowInvalidCertificates": True} if self.mongo_uri.startswith("mongodb+srv://") else {}
         self.client = MongoClient(
             self.mongo_uri,
             serverSelectionTimeoutMS=30000,
@@ -31,8 +32,7 @@ class UserService:
             socketTimeoutMS=30000,
             maxPoolSize=10,
             retryWrites=True,
-            tls=True,
-            tlsAllowInvalidCertificates=True  # Allow invalid certificates to fix SSL issues
+            **_tls_opts  # Allow invalid certificates to fix SSL issues
         )
         self.db = self.client['socialflow']
         self.users_collection = self.db['users']

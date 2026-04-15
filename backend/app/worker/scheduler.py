@@ -49,7 +49,8 @@ async def scheduler_lifespan():
         yield None
         return
 
-    mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    # MONGO_URI (docker-compose/self-hosted) takes priority; MONGODB_URI is legacy alias
+    mongo_uri = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     jobstores = {
         "default": MongoDBJobStore(
             database="socialflow",

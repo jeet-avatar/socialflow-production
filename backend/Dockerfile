@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM deps AS production
 COPY backend/app ./app
 
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000

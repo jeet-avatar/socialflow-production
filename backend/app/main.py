@@ -58,7 +58,6 @@ app = FastAPI(
 )
 
 # Rate limiting
-from slowapi import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIASGIMiddleware
 from utils.rate_limiter import limiter
@@ -188,7 +187,7 @@ async def health_check():
 
     # Redis ping
     try:
-        from utils.redis_client import get_redis_client
+        from utils.redis_client import _get_client as get_redis_client
         r = get_redis_client()
         await asyncio.wait_for(asyncio.get_event_loop().run_in_executor(None, r.ping), timeout=2.0)
         services["redis"] = "ok"

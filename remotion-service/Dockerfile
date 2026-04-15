@@ -25,9 +25,12 @@ RUN npm run build
 FROM base AS production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+# Bundler needs TypeScript source at runtime (bundle() reads src/index.tsx via webpack)
+COPY --from=builder /app/src ./src
 
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
+# node:slim already has a 'node' user at UID 1000 — use it directly
+RUN chown -R node:node /app
+USER node
 
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
