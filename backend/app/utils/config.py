@@ -37,12 +37,16 @@ class Config:
     @classmethod
     def validate_required_vars(cls) -> bool:
         """Validate that all required environment variables are set"""
-        required_vars = {
-            'MONGODB_USERNAME': cls.MONGODB_USERNAME,
-            'MONGODB_PASSWORD': cls.MONGODB_PASSWORD,
-            'MONGODB_CLUSTER': cls.MONGODB_CLUSTER,
-            'OPENAI_API_KEY': cls.OPENAI_API_KEY,
-        }
+        # MONGO_URI bypasses Atlas credentials — skip those checks
+        if os.getenv("MONGO_URI", "").strip():
+            required_vars = {'OPENAI_API_KEY': cls.OPENAI_API_KEY}
+        else:
+            required_vars = {
+                'MONGODB_USERNAME': cls.MONGODB_USERNAME,
+                'MONGODB_PASSWORD': cls.MONGODB_PASSWORD,
+                'MONGODB_CLUSTER': cls.MONGODB_CLUSTER,
+                'OPENAI_API_KEY': cls.OPENAI_API_KEY,
+            }
 
         missing_vars = [var for var, value in required_vars.items() if not value]
 
@@ -60,19 +64,26 @@ class Config:
 
     @classmethod
     def get_mongodb_connection_string(cls) -> str:
-        """Build secure MongoDB connection string"""
+        """Build MongoDB connection string.
+
+        Priority:
+        1. MONGO_URI env var (local dev / Docker Compose / self-hosted)
+        2. Atlas SRV URI built from MONGODB_USERNAME / PASSWORD / CLUSTER
+        """
+        direct_uri = os.getenv("MONGO_URI", "").strip()
+        if direct_uri:
+            return direct_uri
+
         import urllib.parse
 
         if not cls.MONGODB_USERNAME:
-            raise ValueError("MONGODB_USERNAME is required")
+            raise ValueError("MONGODB_USERNAME (or MONGO_URI) is required")
         if not cls.MONGODB_PASSWORD:
-            raise ValueError("MONGODB_PASSWORD is required")
+            raise ValueError("MONGODB_PASSWORD (or MONGO_URI) is required")
         if not cls.MONGODB_CLUSTER:
-            raise ValueError("MONGODB_CLUSTER is required")
+            raise ValueError("MONGODB_CLUSTER (or MONGO_URI) is required")
 
-        # URL encode the password to handle special characters
         encoded_password = urllib.parse.quote_plus(cls.MONGODB_PASSWORD)
-
         return (
             f"mongodb+srv://{cls.MONGODB_USERNAME}:{encoded_password}@{cls.MONGODB_CLUSTER}/"
             f"?retryWrites=true&w=majority&appName=SocialFlow"

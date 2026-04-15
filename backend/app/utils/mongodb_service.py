@@ -42,8 +42,10 @@ class MongoDBService:
         self.companies_collection: Optional[Collection] = None
 
     def connect(self):
-        """Establish connection to MongoDB Atlas."""
+        """Establish connection to MongoDB."""
         try:
+            # TLS only for Atlas (mongodb+srv://) — local/Docker URIs don't use TLS
+            use_tls = self.connection_string.startswith("mongodb+srv://")
             self.client = MongoClient(
                 self.connection_string,
                 serverSelectionTimeoutMS=30000,
@@ -51,8 +53,8 @@ class MongoDBService:
                 socketTimeoutMS=30000,
                 maxPoolSize=10,
                 retryWrites=True,
-                tls=True,
-                tlsAllowInvalidCertificates=True,
+                tls=use_tls,
+                tlsAllowInvalidCertificates=use_tls,
             )
             self.client.admin.command("ping")
             self.db = self.client[self.database_name]

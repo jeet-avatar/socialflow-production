@@ -10,6 +10,19 @@ services:
       timeout: 3s
       retries: 5
 
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -27,6 +40,8 @@ services:
       - SCHEDULER_ENABLED=true
     depends_on:
       redis:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
 
   remotion:
@@ -56,6 +71,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
 
   # ── Flower (Celery monitoring UI) — uncomment to enable ──────────────────
   # flower:
@@ -65,3 +82,6 @@ services:
   #     - "5555:5555"
   #   depends_on:
   #     - redis
+
+volumes:
+  mongodb_data:

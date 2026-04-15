@@ -6,18 +6,16 @@ import { registerTokenGetter } from '../utils/getAuthToken';
 
 const DEV_BYPASS_AUTH = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
 
-const AppWithAuth = () => {
+// ── Dev-bypass shell — rendered when Clerk is not loaded ─────────────────────
+const DevBypassApp = () => {
+  registerTokenGetter(async () => 'dev-bypass');
+  return <Dashboard onLogout={() => { globalThis.location.href = '/'; }} />;
+};
+
+// ── Full Clerk-authenticated shell ───────────────────────────────────────────
+const ClerkApp = () => {
   const { user, loading, signOut } = useAuth();
   const { openSignIn } = useClerk();
-
-  if (DEV_BYPASS_AUTH) {
-    registerTokenGetter(async () => 'dev-bypass');
-    return (
-      <Dashboard
-        onLogout={() => { globalThis.location.href = '/'; }}
-      />
-    );
-  }
 
   if (loading) {
     return (
@@ -54,6 +52,11 @@ const AppWithAuth = () => {
       }}
     />
   );
+};
+
+const AppWithAuth = () => {
+  if (DEV_BYPASS_AUTH) return <DevBypassApp />;
+  return <ClerkApp />;
 };
 
 export default AppWithAuth;

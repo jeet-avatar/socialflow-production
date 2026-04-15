@@ -1,21 +1,24 @@
 import React from 'react';
-import { AbsoluteFill, Html5Audio } from 'remotion';
+import { AbsoluteFill, Html5Audio, Sequence } from 'remotion';
 import SceneCard, { SubtitleSegment } from '../components/SceneCard';
 import type { TemplateSceneSpec } from '../components/TemplateScene';
 import SubtitleOverlay from '../components/SubtitleOverlay';
+import LogoReveal from '../components/LogoReveal';
 
 export interface SocialFlowVideoProps {
   voiceover_url: string;
   bgm_url: string;
   client_logo_url: string;
   user_logo_url: string;
-  template_video_url?: string;          // optional background video URL
+  company_name?: string;           // displayed in LogoReveal intro
+  logo_intro_seconds?: number;     // seconds for logo reveal before scenes (default 0 = disabled)
+  template_video_url?: string;
   subtitle_segments: SubtitleSegment[];
-  caption_segments?: SubtitleSegment[];  // fine-grained Whisper phrases for subtitle overlay
+  caption_segments?: SubtitleSegment[];
   scene_descriptors: TemplateSceneSpec[];
-  text_layovers?: Array<{ text: string; start: number; end: number }>;  // optional text overlays
-  show_captions?: boolean;    // default true — renders SubtitleOverlay on every video
-  voiceover_duration_seconds?: number;  // total voiceover duration in seconds
+  text_layovers?: Array<{ text: string; start: number; end: number }>;
+  show_captions?: boolean;
+  voiceover_duration_seconds?: number;
 }
 
 export const FPS = 30;
@@ -37,16 +40,31 @@ const SocialFlowVideo: React.FC<SocialFlowVideoProps> = ({
   bgm_url,
   client_logo_url,
   user_logo_url,
+  company_name,
+  logo_intro_seconds = 0,
   subtitle_segments,
   caption_segments,
   scene_descriptors,
   show_captions = true,
 }) => {
   const captionSegs = (caption_segments && caption_segments.length > 0) ? caption_segments : subtitle_segments;
+  const logoFrames  = Math.ceil(logo_intro_seconds * FPS);
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#050510' }}>
-      {/* ── Scene cards ─────────────────────────────────────────────────── */}
+
+      {/* ── Logo intro (optional) ────────────────────────────────────────── */}
+      {logoFrames > 0 && (
+        <Sequence from={0} durationInFrames={logoFrames}>
+          <LogoReveal
+            client_logo_url={client_logo_url}
+            user_logo_url={user_logo_url}
+            company_name={company_name}
+          />
+        </Sequence>
+      )}
+
+      {/* ── Scene cards (offset by logo intro) ──────────────────────────── */}
       {subtitle_segments.map((segment, i) => {
         const spec = scene_descriptors?.[i] ?? FALLBACK_SPEC(i);
         return (
@@ -55,7 +73,7 @@ const SocialFlowVideo: React.FC<SocialFlowVideoProps> = ({
             segment={segment}
             spec={spec}
             fps={FPS}
-            frameOffset={0}
+            frameOffset={logoFrames}
             client_logo_url={client_logo_url}
             user_logo_url={user_logo_url}
             isFirst={i === 0}
@@ -63,14 +81,14 @@ const SocialFlowVideo: React.FC<SocialFlowVideoProps> = ({
         );
       })}
 
-      {/* ── Captions ────────────────────────────────────────────────────── */}
+      {/* ── Captions (offset by logo intro) ─────────────────────────────── */}
       {show_captions && captionSegs.length > 0 && (
-        <SubtitleOverlay segments={captionSegs} fps={FPS} frame_offset={0} />
+        <SubtitleOverlay segments={captionSegs} fps={FPS} frame_offset={logoFrames} />
       )}
 
-      {/* ── Audio ───────────────────────────────────────────────────────── */}
-      {bgm_url       && <Html5Audio src={bgm_url}       volume={0.08} />}
-      {voiceover_url && <Html5Audio src={voiceover_url} volume={1}    />}
+      {/* ── Audio (starts immediately — logo plays over silence or BGM) ─── */}
+      {bgm_url       && <Html5Audio src={bgm_url}       volume={0.08} startFrom={0} />}
+      {voiceover_url && <Html5Audio src={voiceover_url} volume={1}    startFrom={0} />}
     </AbsoluteFill>
   );
 };

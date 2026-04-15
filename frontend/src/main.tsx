@@ -5,9 +5,10 @@ import { dark } from '@clerk/themes';
 import App from './App.tsx';
 import './styles/index.css';
 
+const DEV_BYPASS = import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-if (!publishableKey) {
+if (!DEV_BYPASS && !publishableKey) {
   throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY in .env');
 }
 
@@ -64,10 +65,17 @@ const clerkAppearance = {
   },
 };
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ClerkProvider publishableKey={publishableKey} appearance={clerkAppearance}>
-      <App />
-    </ClerkProvider>
-  </StrictMode>
-);
+const root = createRoot(document.getElementById('root')!);
+
+if (DEV_BYPASS) {
+  // No Clerk needed — AppWithAuth renders Dashboard directly via VITE_DEV_BYPASS_AUTH
+  root.render(<StrictMode><App /></StrictMode>);
+} else {
+  root.render(
+    <StrictMode>
+      <ClerkProvider publishableKey={publishableKey!} appearance={clerkAppearance}>
+        <App />
+      </ClerkProvider>
+    </StrictMode>
+  );
+}

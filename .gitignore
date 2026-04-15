@@ -108,3 +108,6 @@ frontend/dist/
 .vite/
 frontend/.vite/
 docker-compose.override.yml
+
+# One-off render scripts (not part of SocialFlow)
+remotion-service/kling-render.mjs
