@@ -31,5 +31,5 @@ celery_app.conf.update(
     # Route all "video.*" tasks to the "video" queue
     task_routes={"video.*": {"queue": "video"}},
     # Task module autodiscovery — avoids circular import via include list
-    include=["app.worker.video_tasks"],
+    include=["app.worker.video_tasks", "app.worker.notification_tasks"],
 )
