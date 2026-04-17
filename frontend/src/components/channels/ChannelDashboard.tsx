@@ -4,6 +4,7 @@ import { Plus, Settings, ToggleLeft, ToggleRight, Loader2, BarChart2 } from 'luc
 import { getAuthHeaders } from '../../utils/getAuthToken';
 import { API_BASE_URL } from '../../config/api';
 import { ChannelAnalytics } from './ChannelAnalytics';
+import ChannelWizard from './ChannelWizard';
 
 interface Channel {
   id: string;
@@ -44,6 +45,7 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'channels' | 'analytics'>('channels');
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -143,7 +145,7 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-dark-text">Channels</h2>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => setShowWizard(true)}
           className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 px-4 py-2 text-sm font-medium text-dark-bg hover:opacity-90 transition-opacity"
         >
           <Plus className="h-4 w-4" />
@@ -276,6 +278,19 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
           ))}
         </div>
       )}
+
+      {/* Channel Wizard (new flow) */}
+      <AnimatePresence>
+        {showWizard && (
+          <ChannelWizard
+            onCreated={(channelId) => {
+              setShowWizard(false);
+              onOpenPipeline(channelId);
+            }}
+            onCancel={() => setShowWizard(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Create Modal */}
       <AnimatePresence>
