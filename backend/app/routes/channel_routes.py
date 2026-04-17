@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from utils.middleware.auth_middleware import auth_middleware
 from utils.mongodb_service import mongodb_service
+from utils.trending_service import get_trending_for_niche
 from worker.scheduler import sync_channel
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,10 @@ class ChannelUpdate(BaseModel):
     auto_post: Optional[bool] = None
     review_window_minutes: Optional[int] = None
     setup_complete: Optional[bool] = None   # wizard final step
+
+
+class TrendVideoRequest(BaseModel):
+    topic: str
 
 
 def _to_doc(doc: dict) -> dict:
@@ -284,3 +289,97 @@ def accept_auto_post_disclaimer(channel_id: str, user_id: CurrentUser):
     # Sync scheduler
     sync_channel(channel_id, auto_post=True, posting_frequency=ch.get("posting_frequency", "weekly"))
     return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Trending topics
+# NOTE: /trending-suggestions has no path param — safe to register at any position
+# NOTE: /videos/from-trend uses literal "from-trend" segment — registered before
+#       /{video_id} variants so FastAPI matches the literal first (safe)
+# ---------------------------------------------------------------------------
+
+@router.get("/trending-suggestions")
+def trending_suggestions():
+    """
+    General trending topics — no channel_id or auth required.
+    Used in wizard Step 1 before a channel exists.
+    Returns up to 8 topics from Google News (general query).
+    """
+    return {"topics": get_trending_for_niche("", max_results=8)}
+
+
+@router.get("/{channel_id}/trending")
+def channel_trending(channel_id: str, user_id: CurrentUser):
+    """
+    Trending topics filtered to the channel's niche.
+    Cached in Redis for 6h per niche.
+    """
+    try:
+        oid = ObjectId(channel_id)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid channel_id")
+
+    ch = _col().find_one({"_id": oid, "user_id": user_id})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    niche = ch.get("niche") or ""
+    return {"topics": get_trending_for_niche(niche, max_results=8)}
+
+
+@router.post("/{channel_id}/videos/from-trend", status_code=202)
+def create_video_from_trend(channel_id: str, body: TrendVideoRequest, user_id: CurrentUser):
+    """
+    Trigger immediate video generation for a trending topic.
+    Writes to queued_videos as pending_review BEFORE dispatching Celery task
+    (render_video_task does not write to queued_videos itself).
+    Returns job_id for status polling.
+    """
+    import uuid
+    from datetime import timedelta
+    try:
+        oid = ObjectId(channel_id)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid channel_id")
+
+    ch = _col().find_one({"_id": oid, "user_id": user_id})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    if not body.topic.strip():
+        raise HTTPException(status_code=422, detail="topic is required")
+
+    job_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    review_window = int(ch.get("review_window_minutes", 60))
+
+    # Write queued_video record FIRST (render_video_task does not write this)
+    _qv_col().insert_one({
+        "channel_id": channel_id,
+        "user_id": user_id,
+        "job_id": job_id,
+        "status": "pending_review",
+        "review_deadline": now + timedelta(minutes=review_window),
+        "source": "trending_trigger",
+        "trending_topic": body.topic,
+        "created_at": now,
+    })
+
+    try:
+        from worker.video_tasks import render_video_task
+        render_video_task.delay(
+            user_id=user_id,
+            job_id=job_id,
+            body={
+                "channel_id": channel_id,
+                "dialogue": f"Create a short video about this trending topic: {body.topic}",
+                "niche": ch.get("niche", ""),
+                "trending_topic": body.topic,
+                "source": "trending_trigger",
+            },
+        )
+    except Exception as exc:
+        logger.error("from-trend: failed to dispatch for channel %s: %s", channel_id, exc)
+        # Don't raise — the queued_video record is written; Celery failure is non-fatal here
+
+    return {"job_id": job_id, "status": "queued"}
