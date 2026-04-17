@@ -56,6 +56,7 @@ class ChannelUpdate(BaseModel):
     posting_frequency: Optional[str] = None
     auto_post: Optional[bool] = None
     review_window_minutes: Optional[int] = None
+    setup_complete: Optional[bool] = None   # wizard final step
 
 
 def _to_doc(doc: dict) -> dict:
@@ -65,6 +66,16 @@ def _to_doc(doc: dict) -> dict:
 
 def _col():
     return mongodb_service.get_database()["channels"]
+
+
+def _qv_col():
+    """queued_videos collection."""
+    return mongodb_service.get_database()["queued_videos"]
+
+
+def _notif_col():
+    """notifications collection."""
+    return mongodb_service.get_database()["notifications"]
 
 
 # ---------------------------------------------------------------------------
@@ -144,4 +155,132 @@ def delete_channel(channel_id: str, user_id: CurrentUser):
     db = mongodb_service.get_database()
     db["model_configs"].delete_many({"channel_id": channel_id, "user_id": user_id})
 
+    return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# Channel video review queue
+# ---------------------------------------------------------------------------
+
+@router.get("/{channel_id}/videos")
+def list_channel_videos(
+    channel_id: str,
+    user_id: CurrentUser,
+    status: Optional[str] = None,
+):
+    """
+    List queued_videos for a channel.
+    Optional ?status=pending_review,expired (comma-separated).
+    Only returns videos belonging to the authenticated user's channel.
+    """
+    try:
+        oid = ObjectId(channel_id)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid channel_id")
+
+    # Verify channel ownership
+    ch = _col().find_one({"_id": oid, "user_id": user_id})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    query: dict = {"channel_id": channel_id, "user_id": user_id}
+    if status:
+        statuses = [s.strip() for s in status.split(",") if s.strip()]
+        query["status"] = {"$in": statuses}
+
+    docs = list(_qv_col().find(query).sort("created_at", -1).limit(50))
+    for d in docs:
+        d["id"] = str(d.pop("_id"))
+        if "review_deadline" in d and hasattr(d["review_deadline"], "isoformat"):
+            d["review_deadline"] = d["review_deadline"].isoformat()
+        if "created_at" in d and hasattr(d["created_at"], "isoformat"):
+            d["created_at"] = d["created_at"].isoformat()
+    return docs
+
+
+@router.post("/{channel_id}/videos/{video_id}/approve")
+def approve_video(channel_id: str, video_id: str, user_id: CurrentUser):
+    """
+    Approve a queued video — sets status=approved.
+    Does NOT post to platform (platform OAuth is a future phase).
+    Verifies: channel.user_id == user_id AND video.channel_id == channel_id.
+    """
+    try:
+        c_oid = ObjectId(channel_id)
+        v_oid = ObjectId(video_id)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid id")
+
+    ch = _col().find_one({"_id": c_oid, "user_id": user_id})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    video = _qv_col().find_one({"_id": v_oid, "channel_id": channel_id, "user_id": user_id})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    now = datetime.now(timezone.utc)
+    result = _qv_col().update_one(
+        {"_id": v_oid},
+        {"$set": {"status": "approved", "approved_at": now}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return {"success": True}
+
+
+@router.post("/{channel_id}/videos/{video_id}/reject")
+def reject_video(channel_id: str, video_id: str, user_id: CurrentUser):
+    """
+    Reject/discard a queued video — sets status=rejected.
+    Same ownership checks as approve.
+    """
+    try:
+        c_oid = ObjectId(channel_id)
+        v_oid = ObjectId(video_id)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid id")
+
+    ch = _col().find_one({"_id": c_oid, "user_id": user_id})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    video = _qv_col().find_one({"_id": v_oid, "channel_id": channel_id, "user_id": user_id})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    _qv_col().update_one(
+        {"_id": v_oid},
+        {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc)}},
+    )
+    return {"success": True}
+
+
+@router.post("/{channel_id}/accept-disclaimer")
+def accept_auto_post_disclaimer(channel_id: str, user_id: CurrentUser):
+    """
+    Record creator's explicit acceptance of auto-post disclaimer.
+    Sets auto_post_disclaimer_accepted=True and auto_post=True on channel.
+    """
+    try:
+        oid = ObjectId(channel_id)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid channel_id")
+
+    ch = _col().find_one({"_id": oid, "user_id": user_id})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    now = datetime.now(timezone.utc)
+    _col().update_one(
+        {"_id": oid},
+        {"$set": {
+            "auto_post": True,
+            "auto_post_disclaimer_accepted": True,
+            "auto_post_disclaimer_accepted_at": now,
+            "updated_at": now,
+        }},
+    )
+    # Sync scheduler
+    sync_channel(channel_id, auto_post=True, posting_frequency=ch.get("posting_frequency", "weekly"))
     return {"success": True}
