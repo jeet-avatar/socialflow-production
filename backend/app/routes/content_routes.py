@@ -100,16 +100,17 @@ CurrentUser = Annotated[dict, Depends(get_current_user)]
 
 
 # ---------------------------------------------------------------------------
-# Voice preview cache (fetched once from ElevenLabs)
+# Voice preview cache (fetched once from ElevenLabs; includes name + labels)
 # ---------------------------------------------------------------------------
-_voice_preview_cache: dict[str, str] = {}
+_voice_list_cache: list[dict] = []
 
 
 @router.get("/voice-previews")
 async def get_voice_previews(user_info: CurrentUser):
-    """Return ElevenLabs voice preview URLs (cached after first fetch)."""
-    if _voice_preview_cache:
-        return {"previews": _voice_preview_cache}
+    """Return ElevenLabs voices with name, description, and preview URL."""
+    global _voice_list_cache
+    if _voice_list_cache:
+        return {"voices": _voice_list_cache}
 
     api_key = os.getenv("ELEVENLABS_API_KEY", "")
     if not api_key:
@@ -124,14 +125,25 @@ async def get_voice_previews(user_info: CurrentUser):
             resp.raise_for_status()
             data = resp.json()
 
+        voices = []
         for voice in data.get("voices", []):
             vid = voice.get("voice_id", "")
             preview = voice.get("preview_url", "")
-            if vid and preview:
-                _voice_preview_cache[vid] = preview
+            if not vid or not preview:
+                continue
+            labels = voice.get("labels", {})
+            description_parts = [v for v in [labels.get("accent"), labels.get("description"), labels.get("use_case")] if v]
+            description = " · ".join(p.title() for p in description_parts) if description_parts else "General"
+            voices.append({
+                "voice_id": vid,
+                "name": voice.get("name", vid),
+                "description": description,
+                "preview_url": preview,
+            })
 
-        logger.info("Cached %d ElevenLabs voice previews", len(_voice_preview_cache))
-        return {"previews": _voice_preview_cache}
+        _voice_list_cache = voices
+        logger.info("Cached %d ElevenLabs voices with metadata", len(voices))
+        return {"voices": voices}
     except Exception as e:
         logger.error("Failed to fetch voice previews: %s", e)
         raise HTTPException(status_code=502, detail="Could not fetch voice previews") from e
