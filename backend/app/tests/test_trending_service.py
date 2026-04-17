@@ -9,12 +9,12 @@ def test_get_trending_returns_list_of_dicts():
 
     mock_feed = MagicMock()
     mock_feed.entries = [
-        MagicMock(
-            title="Fed holds rates",
-            link="https://example.com/1",
-            published="Wed, 16 Apr 2026 10:00:00 GMT",
-            **{"source": MagicMock(title="Reuters")},
-        )
+        {
+            "title": "Fed holds rates",
+            "link": "https://example.com/1",
+            "published": "Wed, 16 Apr 2026 10:00:00 GMT",
+            "source": {"title": "Reuters"},
+        }
     ]
 
     with patch("utils.trending_service.feedparser.parse", return_value=mock_feed), \
@@ -25,6 +25,8 @@ def test_get_trending_returns_list_of_dicts():
     assert len(result) == 1
     assert "title" in result[0]
     assert "url" in result[0]
+    assert result[0]["title"] == "Fed holds rates"
+    assert result[0]["source"] == "Reuters"
 
 
 def test_get_trending_returns_empty_on_error():

@@ -69,3 +69,4 @@ websockets
 Werkzeug
 whisper
 APScheduler==3.11.*
+pytest

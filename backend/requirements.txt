@@ -80,4 +80,3 @@ celery[redis]
 redis
 apscheduler[mongodb]==3.10.4
 feedparser
-pytest

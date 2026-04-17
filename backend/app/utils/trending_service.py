@@ -6,6 +6,7 @@ get_trending_for_niche(niche, max_results=8) -> list[dict]
 Caches results in Redis for CACHE_TTL seconds (default 6h).
 Falls back to [] on any error (non-fatal — caller shows "No trends available").
 """
+import json
 import logging
 from urllib.parse import quote_plus
 
@@ -44,7 +45,6 @@ def get_trending_for_niche(niche: str, max_results: int = 8) -> list[dict]:
     redis = _get_redis_client()
     if redis:
         try:
-            import json
             cached = redis.get(cache_key)
             if cached:
                 return json.loads(cached)
@@ -56,9 +56,7 @@ def get_trending_for_niche(niche: str, max_results: int = 8) -> list[dict]:
         feed = feedparser.parse(feed_url)
         results = []
         for entry in feed.entries[:max_results]:
-            source = ""
-            if hasattr(entry, "source") and hasattr(entry.source, "title"):
-                source = entry.source.title
+            source = entry.get("source", {}).get("title", "") if isinstance(entry.get("source"), dict) else ""
             results.append({
                 "title": entry.get("title", ""),
                 "url": entry.get("link", ""),
@@ -69,7 +67,6 @@ def get_trending_for_niche(niche: str, max_results: int = 8) -> list[dict]:
         # Store in Redis cache
         if redis and results:
             try:
-                import json
                 redis.setex(cache_key, CACHE_TTL, json.dumps(results))
             except Exception:
                 pass
