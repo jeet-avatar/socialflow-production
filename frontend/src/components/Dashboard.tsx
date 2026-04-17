@@ -52,6 +52,7 @@ import { useAuth } from '../hooks/useSupabase';
 import { integrationsService } from '../services/integrationsService';
 import { API_BASE_URL } from '../config/api';
 import ChannelDashboard from './channels/ChannelDashboard';
+import ChannelHome from './channels/ChannelHome';
 import PipelineBuilder from './channels/PipelineBuilder';
 import { AnimatePresence } from 'framer-motion';
 
@@ -157,6 +158,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
   // ── Channel pipeline overlay state ────────────────────────────────────────
   const [activePipelineChannel, setActivePipelineChannel] = useState<string | null>(null);
   const [showPipelineOverlay, setShowPipelineOverlay] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
 
   // ── Background search indicator (leads + company analysis) ────────────────
   const isLeadsRunning = () => leadsSearchService.getState()?.status === 'running';
@@ -1029,12 +1031,24 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
               <UserProfile selectedPlatform={selectedPlatform} onPlatformChange={setSelectedPlatform} />
             </div>
             <div style={{ display: activeTab === 'channels' ? 'block' : 'none' }}>
-              <ChannelDashboard
-                onOpenPipeline={(channelId) => {
-                  setActivePipelineChannel(channelId);
-                  setShowPipelineOverlay(true);
-                }}
-              />
+              {selectedChannel ? (
+                <ChannelHome
+                  channelId={selectedChannel}
+                  onBack={() => setSelectedChannel(null)}
+                  onOpenPipeline={(channelId) => {
+                    setActivePipelineChannel(channelId);
+                    setShowPipelineOverlay(true);
+                  }}
+                />
+              ) : (
+                <ChannelDashboard
+                  onOpenPipeline={(channelId) => {
+                    setActivePipelineChannel(channelId);
+                    setShowPipelineOverlay(true);
+                  }}
+                  onOpenChannelHome={(channelId) => setSelectedChannel(channelId)}
+                />
+              )}
             </div>
           </main>
         )}

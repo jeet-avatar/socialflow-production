@@ -24,6 +24,7 @@ const FREQUENCIES = ['daily', '3x_week', 'weekly'] as const;
 
 interface ChannelDashboardProps {
   onOpenPipeline: (channelId: string) => void;
+  onOpenChannelHome: (channelId: string) => void;
 }
 
 const PLATFORM_BADGE_CLASSES: Record<string, string> = {
@@ -40,7 +41,7 @@ const FREQUENCY_LABEL: Record<string, string> = {
   weekly: 'Weekly',
 };
 
-export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardProps) {
+export default function ChannelDashboard({ onOpenPipeline, onOpenChannelHome }: ChannelDashboardProps) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +214,8 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-2xl border border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14] p-5 transition-all"
+              onClick={() => onOpenChannelHome(channel.id)}
+              className="rounded-2xl border border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14] p-5 transition-all cursor-pointer"
             >
               {/* Card header */}
               <div className="flex items-start justify-between mb-3">
@@ -241,7 +243,7 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => handleToggleAutoPost(channel)}
+                  onClick={(e) => { e.stopPropagation(); handleToggleAutoPost(channel); }}
                   className="flex items-center gap-1.5 text-sm transition-colors"
                   title={channel.auto_post ? 'Auto-post on' : 'Auto-post off'}
                 >
@@ -258,7 +260,7 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => { setSelectedChannelId(channel.id); setActiveTab('analytics'); }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedChannelId(channel.id); setActiveTab('analytics'); }}
                     className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5 text-xs text-dark-text-muted hover:border-white/[0.14] hover:text-dark-text transition-all"
                   >
                     <BarChart2 className="h-3.5 w-3.5" />
@@ -266,7 +268,7 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
                   </button>
                   <button
                     type="button"
-                    onClick={() => onOpenPipeline(channel.id)}
+                    onClick={(e) => { e.stopPropagation(); onOpenPipeline(channel.id); }}
                     className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-1.5 text-xs text-dark-text-muted hover:border-white/[0.14] hover:text-dark-text transition-all"
                   >
                     <Settings className="h-3.5 w-3.5" />
@@ -285,7 +287,7 @@ export default function ChannelDashboard({ onOpenPipeline }: ChannelDashboardPro
           <ChannelWizard
             onCreated={(channelId) => {
               setShowWizard(false);
-              onOpenPipeline(channelId);
+              onOpenChannelHome(channelId);
             }}
             onCancel={() => setShowWizard(false)}
           />
