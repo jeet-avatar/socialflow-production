@@ -38,6 +38,11 @@ NEW_COLLECTIONS = {
         {"key": [("channel_id", ASCENDING), ("platform", ASCENDING)], "name": "pp_channel_platform"},
         {"key": [("posted_at", DESCENDING)], "name": "pp_posted_at"},
     ],
+    "notifications": [
+        {"key": [("user_id", ASCENDING), ("created_at", DESCENDING)], "name": "notif_user_created"},
+        {"key": [("user_id", ASCENDING), ("read", ASCENDING)], "name": "notif_user_read"},
+        {"key": [("channel_id", ASCENDING)], "name": "notif_channel_id"},
+    ],
 }
 
 
