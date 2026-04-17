@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Loader2, Play } from 'lucide-react';
 import { getAuthHeaders } from '../../utils/getAuthToken';
@@ -39,6 +39,13 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => () => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, []);
+
   // Fetch trending topics on mount (Step 1 chips)
   useEffect(() => {
     fetch(`${API_BASE_URL}/channels/trending-suggestions`)
@@ -56,17 +63,22 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
         .then(d => {
           const list: Voice[] = d.voices || [];
           setVoices(list);
-          if (list.length > 0 && !selectedVoiceId) setSelectedVoiceId(list[0].voice_id);
+          if (list.length > 0) setSelectedVoiceId(prev => prev || list[0].voice_id);
         })
         .catch(() => {})
     );
   }, [step]);
 
   const playPreview = (voice: Voice) => {
-    setPlayingVoiceId(voice.voice_id);
+    audioRef.current?.pause();
     const audio = new Audio(voice.preview_url);
-    audio.play().catch(() => {});
-    audio.onended = () => setPlayingVoiceId('');
+    audioRef.current = audio;
+    setPlayingVoiceId(voice.voice_id);
+    audio.play().catch(() => setPlayingVoiceId(''));
+    audio.onended = () => {
+      if (audioRef.current === audio) audioRef.current = null;
+      setPlayingVoiceId('');
+    };
   };
 
   const handleSubmit = async () => {
@@ -89,12 +101,12 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
       if (selectedVoiceId) {
         await json('POST', `${API_BASE_URL}/model-config/`, {
           channel_id: channel.id, voice_provider: 'elevenlabs', voice_id: selectedVoiceId,
-        }).catch(() => {}); // non-fatal
+        }).catch(e => console.error('model-config save failed:', e)); // non-fatal
       }
 
       // 3. Mark setup complete
       await json('PUT', `${API_BASE_URL}/channels/${channel.id}`, { setup_complete: true })
-        .catch(() => {}); // non-fatal
+        .catch(e => console.error('setup_complete update failed:', e)); // non-fatal
 
       onCreated(channel.id);
     } catch (e) {
@@ -140,7 +152,7 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
                     <div className="flex flex-wrap gap-2">
                       {trendingTopics.slice(0, 5).map((t, i) => (
                         <button key={i} onClick={() => setNiche(t.title)}
-                          className="px-3 py-1 rounded-full text-xs border border-amber-400/20 bg-amber-400/05 text-amber-300/80 hover:border-amber-400/40 transition-all">
+                          className="px-3 py-1 rounded-full text-xs border border-amber-400/20 bg-amber-400/5 text-amber-300/80 hover:border-amber-400/40 transition-all">
                           {t.title.length > 40 ? t.title.slice(0, 40) + '…' : t.title}
                         </button>
                       ))}
@@ -159,7 +171,7 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
               <div className="space-y-3 mb-5">
                 {PLATFORMS.map(p => (
                   <button key={p} onClick={() => setPlatform(p)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${platform === p ? 'border-teal-500/60 bg-teal-500/08' : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14]'}`}>
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${platform === p ? 'border-teal-500/60 bg-teal-500/10' : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14]'}`}>
                     <span className="text-xl">{PLATFORM_EMOJI[p]}</span>
                     <span className={`text-sm font-medium capitalize ${platform === p ? 'text-white' : 'text-white/50'}`}>{p}</span>
                     {platform === p && <span className="ml-auto w-4 h-4 rounded-full bg-teal-500 flex items-center justify-center text-[10px]">✓</span>}
@@ -170,7 +182,7 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
               <div className="flex gap-2">
                 {FREQUENCIES.map(f => (
                   <button key={f} onClick={() => setFrequency(f)}
-                    className={`flex-1 py-2 rounded-lg text-xs border transition-all ${frequency === f ? 'border-teal-500/60 bg-teal-500/08 text-white' : 'border-white/[0.07] text-white/40 hover:border-white/[0.14]'}`}>
+                    className={`flex-1 py-2 rounded-lg text-xs border transition-all ${frequency === f ? 'border-teal-500/60 bg-teal-500/10 text-white' : 'border-white/[0.07] text-white/40 hover:border-white/[0.14]'}`}>
                     {FREQ_LABEL[f]}
                   </button>
                 ))}
@@ -190,8 +202,14 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {voices.map(v => (
-                    <button key={v.voice_id} onClick={() => setSelectedVoiceId(v.voice_id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selectedVoiceId === v.voice_id ? 'border-teal-500/60 bg-teal-500/08' : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14]'}`}>
+                    <div
+                      key={v.voice_id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedVoiceId(v.voice_id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedVoiceId(v.voice_id); } }}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${selectedVoiceId === v.voice_id ? 'border-teal-500/60 bg-teal-500/10' : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.14]'}`}
+                    >
                       <span className="text-lg shrink-0">🎙️</span>
                       <div className="flex-1 min-w-0">
                         <div className={`text-sm font-medium ${selectedVoiceId === v.voice_id ? 'text-white' : 'text-white/60'}`}>{v.name}</div>
@@ -202,7 +220,7 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
                         <Play className={`h-3 w-3 ${playingVoiceId === v.voice_id ? 'text-teal-400' : ''}`} />
                         {playingVoiceId === v.voice_id ? 'Playing' : 'Play'}
                       </button>
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -218,9 +236,9 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
             {step === 1 ? 'Cancel' : <><ChevronLeft className="h-4 w-4" /> Back</>}
           </button>
           <button
-            disabled={step === 3 && submitting}
+            disabled={(step === 1 && !name.trim()) || (step === 3 && submitting)}
             onClick={() => { if (step < 3) setStep(s => s + 1); else handleSubmit(); }}
-            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-2.5 text-sm font-medium text-black hover:opacity-90 transition-opacity disabled:opacity-60">
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-2.5 text-sm font-medium text-black hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed">
             {step === 3 && submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating…</> : step === 3 ? 'Create Channel' : 'Continue →'}
           </button>
         </div>
