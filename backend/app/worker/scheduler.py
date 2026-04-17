@@ -12,6 +12,7 @@ In production (Phase 10), set SCHEDULER_ENABLED=false on all but one task.
 import logging
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -186,5 +187,43 @@ async def _run_channel_pipeline(channel_id: str) -> None:
             },
         )
         logger.info(f"APScheduler: dispatched render_video_task channel={channel_id} job_id={job_id}")
+
+        # ── Step 3: Write pending review record to queued_videos ────────────────
+        try:
+            from datetime import timedelta  # noqa: PLC0415
+            review_window = int(ch.get("review_window_minutes", 60))
+            deadline = datetime.now(timezone.utc) + timedelta(minutes=review_window)
+            col = mongodb_service.get_database()["queued_videos"]
+            col.insert_one({
+                "channel_id": channel_id,
+                "user_id": user_id,
+                "job_id": job_id,
+                "status": "pending_review",
+                "review_deadline": deadline,
+                "source": "scheduled",
+                "trending_topic": None,
+                "created_at": datetime.now(timezone.utc),
+            })
+            logger.info(
+                f"APScheduler: queued_video written channel={channel_id} job_id={job_id} "
+                f"review_deadline={deadline.isoformat()}"
+            )
+
+            # ── Step 4: Schedule 80% reminder via Celery countdown ───────────────
+            try:
+                from worker.notification_tasks import send_review_reminder  # noqa: PLC0415
+                countdown_secs = int(review_window * 0.8 * 60)
+                send_review_reminder.apply_async(
+                    args=[user_id, channel_id, job_id],
+                    countdown=countdown_secs,
+                )
+                logger.info(
+                    f"APScheduler: reminder scheduled in {countdown_secs}s for job_id={job_id}"
+                )
+            except Exception as notif_exc:
+                logger.warning(f"APScheduler: failed to schedule reminder (non-fatal): {notif_exc}")
+
+        except Exception as qv_exc:
+            logger.error(f"APScheduler: failed to write queued_video for job_id={job_id}: {qv_exc}")
     except Exception as exc:
         logger.error(f"APScheduler: failed to dispatch pipeline for channel {channel_id}: {exc}")
