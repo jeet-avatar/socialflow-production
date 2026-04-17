@@ -193,8 +193,8 @@ async def _run_channel_pipeline(channel_id: str) -> None:
             from datetime import timedelta  # noqa: PLC0415
             review_window = int(ch.get("review_window_minutes", 60))
             deadline = datetime.now(timezone.utc) + timedelta(minutes=review_window)
-            col = mongodb_service.get_database()["queued_videos"]
-            col.insert_one({
+            qv_col = mongodb_service.get_database()["queued_videos"]
+            qv_col.insert_one({
                 "channel_id": channel_id,
                 "user_id": user_id,
                 "job_id": job_id,
