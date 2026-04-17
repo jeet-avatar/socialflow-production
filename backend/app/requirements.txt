@@ -17,6 +17,7 @@ duckduckgo-search
 ecdsa
 elevenlabs
 fastapi
+feedparser
 gtts
 boto3
 Flask
