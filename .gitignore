@@ -73,6 +73,8 @@ Thumbs.db
 *.avi
 *.mkv
 *.wmv
+# Exception: landing-page sample clips are committed
+!frontend/public/sample-videos/*.mp4
 
 # Static folder with generated videos (keep the directory itself via .gitkeep)
 backend/app/static/*

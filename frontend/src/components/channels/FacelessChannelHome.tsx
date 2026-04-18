@@ -9,9 +9,9 @@ const FEATURED_VOICES = [
 ];
 
 const SAMPLE_CLIPS = [
-  { title: 'Cinematic Reveal', accent: '#06b6d4', gradient: 'linear-gradient(135deg,#06b6d4 0%,#1d4ed8 100%)' },
-  { title: 'Neon Pulse', accent: '#a855f7', gradient: 'linear-gradient(135deg,#a855f7 0%,#ec4899 100%)' },
-  { title: 'Word Burst', accent: '#10b981', gradient: 'linear-gradient(135deg,#10b981 0%,#06b6d4 100%)' },
+  { title: 'Cinematic Reveal', accent: '#06b6d4', src: '/sample-videos/cinematic.mp4', poster: '' },
+  { title: 'Neon Pulse',       accent: '#a855f7', src: '/sample-videos/neon.mp4',      poster: '' },
+  { title: 'Word Burst',       accent: '#10b981', src: '/sample-videos/burst.mp4',     poster: '' },
 ];
 
 const HOW_STEPS = [
@@ -128,42 +128,35 @@ function SampleCard({ clip, index }: { clip: typeof SAMPLE_CLIPS[number]; index:
       viewport={{ once: true, margin: '-50px' }}
       transition={{ delay: index * 0.1, duration: 0.6 }}
       whileHover={{ scale: 1.02 }}
-      className="relative rounded-2xl border border-white/[0.08] overflow-hidden aspect-[9/16]"
-      style={{ background: clip.gradient }}
+      className="relative rounded-2xl border border-white/[0.08] overflow-hidden aspect-[9/16] bg-black group"
     >
-      <motion.div
-        className="absolute inset-0"
-        animate={{ background: [
-          `radial-gradient(circle at 20% 30%, ${clip.accent}88 0%, transparent 50%)`,
-          `radial-gradient(circle at 80% 70%, ${clip.accent}88 0%, transparent 50%)`,
-          `radial-gradient(circle at 20% 30%, ${clip.accent}88 0%, transparent 50%)`,
-        ] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      <video
+        src={clip.src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
       />
-      <div className="absolute inset-0 flex flex-col justify-between p-5">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-white/80 animate-pulse" />
-          <span className="text-[10px] tracking-[0.2em] font-bold text-white/80 uppercase">Sample</span>
-        </div>
-        <motion.div
-          animate={{ opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-          className="font-display font-extrabold text-white text-2xl leading-tight"
-          style={{ letterSpacing: '-0.03em', textShadow: '0 4px 24px rgba(0,0,0,0.4)' }}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 45%)`,
+      }} />
+      <div className="absolute inset-x-0 top-3 flex items-center gap-2 px-4 pointer-events-none">
+        <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+        <span className="text-[10px] tracking-[0.18em] font-bold text-white/80 uppercase">Sample</span>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pointer-events-none">
+        <div className="font-display font-extrabold text-white text-lg leading-tight"
+          style={{ letterSpacing: '-0.02em', textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}
         >
           {clip.title}
-        </motion.div>
+        </div>
       </div>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="w-16 h-16 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.25)' }}
-        >
-          <Play className="w-6 h-6 text-white ml-1" />
-        </motion.div>
-      </div>
+      <div
+        className="absolute inset-x-3 bottom-3 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: clip.accent, boxShadow: `0 0 12px ${clip.accent}` }}
+      />
     </motion.div>
   );
 }
