@@ -26,7 +26,8 @@ import {
   Sparkles, UserCheck, User, Building2, LogOut, ChevronDown, Mail,
   ChevronLeft, ChevronRight, Video, Crown, Bell,
   BookOpen,
-  Workflow
+  Workflow,
+  Mic, FileVideo, TrendingUp, Calendar, BarChart3,
 } from 'lucide-react';
 
 const FacebookIcon = ({ className }: { className?: string }) => (
@@ -815,13 +816,14 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
           <nav className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-1">
               {[
-                { id: 'dashboard',        icon: Home,      label: 'Dashboard'         },
-                { id: 'leads',            icon: UserCheck, label: 'Leads'             },
-                { id: 'company-analysis', icon: Building2, label: 'Company Analysis'  },
-                { id: 'video-studio',     icon: Video,      label: 'Video Studio'      },
-                { id: 'seedance-studio',  icon: Sparkles,   label: 'Seedance Studio'   },
-                { id: 'channels',         icon: Workflow,   label: 'Channels'          },
-                { id: 'profile',          icon: User,       label: 'Profile'           },
+                { id: 'dashboard', icon: Home,       label: 'Home'      },
+                { id: 'channels',  icon: Workflow,   label: 'Channels'  },
+                { id: 'templates', icon: FileVideo,  label: 'Templates' },
+                { id: 'voices',    icon: Mic,        label: 'Voices'    },
+                { id: 'trending',  icon: TrendingUp, label: 'Trending'  },
+                { id: 'calendar',  icon: Calendar,   label: 'Calendar'  },
+                { id: 'analytics', icon: BarChart3,  label: 'Analytics' },
+                { id: 'profile',   icon: User,       label: 'Profile'   },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -1058,6 +1060,19 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
                 />
               )}
             </div>
+            {(['templates','voices','trending','calendar','analytics'] as const).map((stub) => (
+              <div key={stub} style={{ display: activeTab === stub ? 'block' : 'none' }}>
+                <div className="rounded-3xl border border-white/[0.08] p-12 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div className="text-[11px] font-bold tracking-[0.16em] uppercase text-cyan-300 mb-3">Coming soon</div>
+                  <h2 className="font-display font-extrabold text-dark-text capitalize" style={{ fontSize: 'clamp(1.75rem,3vw,2.5rem)', letterSpacing: '-0.03em' }}>
+                    {stub}
+                  </h2>
+                  <p className="text-dark-text-muted mt-3 max-w-md mx-auto">
+                    This surface is being built out as part of the faceless-channel flow.
+                  </p>
+                </div>
+              </div>
+            ))}
           </main>
         )}
 
