@@ -63,6 +63,12 @@ export default function ChannelDashboard({ onOpenPipeline, onOpenChannelHome }: 
     fetchChannels();
   }, []);
 
+  useEffect(() => {
+    const open = () => setShowWizard(true);
+    globalThis.addEventListener('openChannelWizard', open);
+    return () => globalThis.removeEventListener('openChannelWizard', open);
+  }, []);
+
   async function handleToggleAutoPost(channel: Channel) {
     // Optimistic update
     setChannels(prev =>

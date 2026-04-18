@@ -54,6 +54,7 @@ import { API_BASE_URL } from '../config/api';
 import ChannelDashboard from './channels/ChannelDashboard';
 import ChannelHome from './channels/ChannelHome';
 import PipelineBuilder from './channels/PipelineBuilder';
+import FacelessChannelHome from './channels/FacelessChannelHome';
 import { AnimatePresence } from 'framer-motion';
 
 interface DashboardProps {
@@ -332,11 +333,14 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
       const page = detail.page === 'my-videos' ? 'video-studio' : detail.page;
       setActiveTab(page);
     };
+    const handleOpenChannelWizard = () => setActiveTab('channels');
     globalThis.addEventListener('navigateToSubscription', handleNavigateToSubscription);
     globalThis.addEventListener('navigateTo', handleNavigateTo);
+    globalThis.addEventListener('openChannelWizard', handleOpenChannelWizard);
     return () => {
       globalThis.removeEventListener('navigateToSubscription', handleNavigateToSubscription);
       globalThis.removeEventListener('navigateTo', handleNavigateTo);
+      globalThis.removeEventListener('openChannelWizard', handleOpenChannelWizard);
     };
   }, []);
 
@@ -429,7 +433,11 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
   // ─────────────────────────────────────────────────────────────
   // DASHBOARD CONTENT
   // ─────────────────────────────────────────────────────────────
-  const renderDashboardContent = () => {
+  const renderDashboardContent = () => <FacelessChannelHome />;
+
+  // Legacy B2B dashboard content — kept in-file for reference but unused.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _renderLegacyB2BDashboard = () => {
     const firstName = (mongoProfile?.full_name ?? profile?.full_name ?? user?.name ?? '').split(' ')[0];
     const hour = new Date().getHours();
     const greeting = (() => {
