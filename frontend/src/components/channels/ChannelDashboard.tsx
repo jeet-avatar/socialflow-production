@@ -19,9 +19,6 @@ interface Channel {
   updated_at: string;
 }
 
-const PLATFORMS = ['youtube', 'instagram', 'facebook', 'tiktok', 'linkedin'] as const;
-const FREQUENCIES = ['daily', '3x_week', 'weekly'] as const;
-
 interface ChannelDashboardProps {
   onOpenPipeline: (channelId: string) => void;
   onOpenChannelHome: (channelId: string) => void;
@@ -45,18 +42,9 @@ export default function ChannelDashboard({ onOpenPipeline, onOpenChannelHome }: 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'channels' | 'analytics'>('channels');
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
-
-  // Form state
-  const [formName, setFormName] = useState('');
-  const [formPlatform, setFormPlatform] = useState<string>('youtube');
-  const [formNiche, setFormNiche] = useState('');
-  const [formFrequency, setFormFrequency] = useState<string>('weekly');
-  const [formAutoPost, setFormAutoPost] = useState(false);
 
   useEffect(() => {
     async function fetchChannels() {
@@ -74,39 +62,6 @@ export default function ChannelDashboard({ onOpenPipeline, onOpenChannelHome }: 
     }
     fetchChannels();
   }, []);
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(`${API_BASE_URL}/channels/`, {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formName,
-          platform: formPlatform,
-          niche: formNiche || undefined,
-          posting_frequency: formFrequency,
-          auto_post: formAutoPost,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to create channel');
-      const created: Channel = await res.json();
-      setChannels(prev => [...prev, created]);
-      setShowCreateModal(false);
-      // Reset form
-      setFormName('');
-      setFormPlatform('youtube');
-      setFormNiche('');
-      setFormFrequency('weekly');
-      setFormAutoPost(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create channel');
-    } finally {
-      setCreating(false);
-    }
-  }
 
   async function handleToggleAutoPost(channel: Channel) {
     // Optimistic update
@@ -136,9 +91,6 @@ export default function ChannelDashboard({ onOpenPipeline, onOpenChannelHome }: 
       );
     }
   }
-
-  const inputClass =
-    'w-full rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-2.5 text-sm text-dark-text focus:outline-none focus:border-teal-500/50 placeholder:text-dark-text-muted';
 
   return (
     <div className="space-y-6">
@@ -294,122 +246,6 @@ export default function ChannelDashboard({ onOpenPipeline, onOpenChannelHome }: 
         )}
       </AnimatePresence>
 
-      {/* Create Modal */}
-      <AnimatePresence>
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.2 }}
-              className="bg-dark-bg-light border border-glass-border rounded-2xl p-6 w-full max-w-md"
-            >
-              <h3 className="text-lg font-semibold text-dark-text mb-5">Create Channel</h3>
-
-              <form onSubmit={handleCreate} className="space-y-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm text-dark-text-muted mb-1.5">
-                    Channel Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formName}
-                    onChange={e => setFormName(e.target.value)}
-                    placeholder="My YouTube Channel"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-
-                {/* Platform */}
-                <div>
-                  <label className="block text-sm text-dark-text-muted mb-1.5">
-                    Platform
-                  </label>
-                  <select
-                    value={formPlatform}
-                    onChange={e => setFormPlatform(e.target.value)}
-                    className={inputClass}
-                  >
-                    {PLATFORMS.map(p => (
-                      <option key={p} value={p}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Niche */}
-                <div>
-                  <label className="block text-sm text-dark-text-muted mb-1.5">
-                    Niche <span className="text-dark-text-muted/60">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formNiche}
-                    onChange={e => setFormNiche(e.target.value)}
-                    placeholder="e.g. Personal Finance, Tech Reviews"
-                    className={inputClass}
-                  />
-                </div>
-
-                {/* Frequency */}
-                <div>
-                  <label className="block text-sm text-dark-text-muted mb-1.5">
-                    Posting Frequency
-                  </label>
-                  <select
-                    value={formFrequency}
-                    onChange={e => setFormFrequency(e.target.value)}
-                    className={inputClass}
-                  >
-                    {FREQUENCIES.map(f => (
-                      <option key={f} value={f}>
-                        {FREQUENCY_LABEL[f]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Auto Post */}
-                <div className="flex items-center gap-3">
-                  <input
-                    id="auto-post-toggle"
-                    type="checkbox"
-                    checked={formAutoPost}
-                    onChange={e => setFormAutoPost(e.target.checked)}
-                    className="h-4 w-4 rounded border-white/20 bg-white/[0.02] text-teal-500 focus:ring-teal-500/50"
-                  />
-                  <label htmlFor="auto-post-toggle" className="text-sm text-dark-text">
-                    Enable Auto-post
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 rounded-xl border border-white/[0.07] bg-white/[0.02] py-2.5 text-sm text-dark-text-muted hover:border-white/[0.14] hover:text-dark-text transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={creating}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-teal-400 py-2.5 text-sm font-medium text-dark-bg hover:opacity-90 transition-opacity disabled:opacity-60"
-                  >
-                    {creating && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Create Channel
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
