@@ -58,7 +58,7 @@ export default function ChannelWizard({ onCreated, onCancel }: ChannelWizardProp
   useEffect(() => {
     if (step !== 3) return;
     getAuthHeaders().then(headers =>
-      fetch(`${API_BASE_URL}/content/voice-previews`, { headers })
+      fetch(`${API_BASE_URL}/voice-previews`, { headers })
         .then(r => r.json())
         .then(d => {
           const list: Voice[] = d.voices || [];
