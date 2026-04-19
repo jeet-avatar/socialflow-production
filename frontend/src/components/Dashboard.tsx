@@ -28,6 +28,7 @@ import {
   BookOpen,
   Workflow,
   Mic, FileVideo, TrendingUp, Calendar, BarChart3,
+  Wand2,
 } from 'lucide-react';
 
 const FacebookIcon = ({ className }: { className?: string }) => (
@@ -56,6 +57,7 @@ import ChannelDashboard from './channels/ChannelDashboard';
 import ChannelHome from './channels/ChannelHome';
 import PipelineBuilder from './channels/PipelineBuilder';
 import FacelessChannelHome from './channels/FacelessChannelHome';
+import GenerationStudio from './generation/GenerationStudio';
 import { AnimatePresence } from 'framer-motion';
 
 interface DashboardProps {
@@ -818,6 +820,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
               {[
                 { id: 'dashboard', icon: Home,       label: 'Home'      },
                 { id: 'channels',  icon: Workflow,   label: 'Channels'  },
+                { id: 'generate',  icon: Wand2,      label: 'Generate'  },
                 { id: 'templates', icon: FileVideo,  label: 'Templates' },
                 { id: 'voices',    icon: Mic,        label: 'Voices'    },
                 { id: 'trending',  icon: TrendingUp, label: 'Trending'  },
@@ -1059,6 +1062,9 @@ const Dashboard = ({ onLogout }: DashboardProps) => { // NOSONAR
                   onOpenChannelHome={(channelId) => setSelectedChannel(channelId)}
                 />
               )}
+            </div>
+            <div style={{ display: activeTab === 'generate' ? 'block' : 'none' }}>
+              <GenerationStudio />
             </div>
             {(['templates','voices','trending','calendar','analytics'] as const).map((stub) => (
               <div key={stub} style={{ display: activeTab === stub ? 'block' : 'none' }}>
