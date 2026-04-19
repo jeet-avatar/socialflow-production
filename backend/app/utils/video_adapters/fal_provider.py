@@ -22,22 +22,31 @@ logger = logging.getLogger(__name__)
 _TIMEOUT_SUBMIT = 30
 _TIMEOUT_POLL = 15
 
-# Map registry model_id → fal model path (everything after queue.fal.run/).
-# Derived from endpoint_url in video_providers.py; kept explicit here so adapter
-# stays readable without URL-parsing the registry.
+# Two paths per fal model:
+#   submit_path → used for POST (full model path, may include /text-to-video)
+#   poll_path   → used for GET status/result (fal drops method-specific segments
+#                 in queue URLs, so we must use the shorter org/model prefix)
+# Verified against fal queue responses (their status_url response field).
 _MODEL_PATHS = {
-    "veo3-fal":   "fal-ai/veo3",
-    "kling2-fal": "fal-ai/kling-video/v2/master/text-to-video",
-    "pika2-fal":  "fal-ai/pika/v2/turbo/text-to-video",
-    "hailuo-fal": "fal-ai/minimax/hailuo-02/standard/text-to-video",
+    "veo3-fal":   {"submit": "fal-ai/veo3",                                     "poll": "fal-ai/veo3"},
+    "kling2-fal": {"submit": "fal-ai/kling-video/v2/master/text-to-video",      "poll": "fal-ai/kling-video"},
+    "pika2-fal":  {"submit": "fal-ai/pika/v2/turbo/text-to-video",              "poll": "fal-ai/pika"},
+    "hailuo-fal": {"submit": "fal-ai/minimax/hailuo-02/standard/text-to-video", "poll": "fal-ai/minimax"},
 }
 
 
-def _base_url(model_id: str) -> str:
-    path = _MODEL_PATHS.get(model_id)
-    if not path:
+def _submit_url(model_id: str) -> str:
+    paths = _MODEL_PATHS.get(model_id)
+    if not paths:
         raise ValueError(f"fal adapter: unknown model_id '{model_id}'")
-    return f"https://queue.fal.run/{path}"
+    return f"https://queue.fal.run/{paths['submit']}"
+
+
+def _poll_base(model_id: str) -> str:
+    paths = _MODEL_PATHS.get(model_id)
+    if not paths:
+        raise ValueError(f"fal adapter: unknown model_id '{model_id}'")
+    return f"https://queue.fal.run/{paths['poll']}"
 
 
 def _headers(api_key: str) -> dict:
@@ -74,7 +83,7 @@ def _build_body(model_id: str, prompt: str, duration: int, ratio: str) -> dict:
 
 def submit(model_id: str, api_key: str, prompt: str, duration: int, ratio: str) -> str:
     """POST to fal queue, return provider request_id."""
-    url = _base_url(model_id)
+    url = _submit_url(model_id)
     body = _build_body(model_id, prompt, duration, ratio)
     resp = requests.post(url, headers=_headers(api_key), json=body, timeout=_TIMEOUT_SUBMIT)
     if resp.status_code >= 400:
@@ -97,7 +106,7 @@ def poll(model_id: str, api_key: str, provider_job_id: str) -> dict:
         COMPLETED         -> completed  (fetches result URL)
         FAILED            -> failed
     """
-    base = _base_url(model_id)
+    base = _poll_base(model_id)
     headers = _headers(api_key)
 
     status_resp = requests.get(
