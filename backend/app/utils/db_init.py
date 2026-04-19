@@ -43,6 +43,25 @@ NEW_COLLECTIONS = {
         {"key": [("user_id", ASCENDING), ("read", ASCENDING)], "name": "notif_user_read"},
         {"key": [("channel_id", ASCENDING)], "name": "notif_channel_id"},
     ],
+    "user_api_keys": [
+        {
+            "key": [("user_id", ASCENDING), ("provider", ASCENDING)],
+            "name": "uak_user_provider",
+            "unique": True,
+        },
+    ],
+    "generation_jobs": [
+        {"key": [("user_id", ASCENDING), ("created_at", DESCENDING)], "name": "gj_user_created"},
+        {"key": [("status", ASCENDING)], "name": "gj_status"},
+        {"key": [("job_id", ASCENDING)], "name": "gj_job_id", "unique": True},
+    ],
+    "credit_balances": [
+        {"key": [("user_id", ASCENDING)], "name": "cb_user_id", "unique": True},
+    ],
+    "credit_transactions": [
+        {"key": [("user_id", ASCENDING), ("created_at", DESCENDING)], "name": "ct_user_created"},
+        {"key": [("reference_id", ASCENDING)], "name": "ct_reference"},
+    ],
 }
 
 
