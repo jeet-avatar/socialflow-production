@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Wand2, Key, ExternalLink, AlertCircle, Send, Download, Loader2, Film, Clock, CheckCircle2, XCircle,
+  Wand2, Key, ExternalLink, AlertCircle, Send, Download, Loader2, Film, Clock, CheckCircle2, XCircle, Sparkles, Coins,
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import {
@@ -40,6 +40,24 @@ interface GenerationJob {
 const RATIOS = ['16:9', '9:16', '1:1'] as const;
 type Ratio = (typeof RATIOS)[number];
 
+const PROMPT_STARTERS = [
+  'A neon-lit Tokyo alleyway at night, camera drifting forward, cinematic, 4k',
+  'Golden hour drone shot over turquoise ocean waves crashing on a coral reef',
+  'Close-up of a cat chef carefully plating sushi, warm kitchen lighting, 35mm',
+  'Time-lapse of a lotus flower blooming, macro, soft morning light, dewdrops',
+  'Hand pouring coffee into a glass cup, slow motion, morning sunlight, film grain',
+  'A rocket launching into a sunset sky, wide angle, lens flare, epic orchestral energy',
+  'Moody portrait of a samurai in a bamboo forest, mist, shafts of light',
+  'Overhead shot of rain falling on a cobblestone street at midnight, reflections',
+];
+
+interface CreditBalance {
+  balance_usd: number;
+  lifetime_spent_usd: number;
+  plan: string;
+  source: string;
+}
+
 export default function GenerationStudio() {
   const [providers, setProviders] = useState<VideoProvider[]>(VIDEO_PROVIDERS_FALLBACK);
   const [selectedModel, setSelectedModel] = useState<string>(VIDEO_PROVIDERS_FALLBACK[0]?.model_id ?? '');
@@ -50,6 +68,7 @@ export default function GenerationStudio() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<GenerationJob[]>([]);
+  const [credits, setCredits] = useState<CreditBalance | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showKeysPanel, setShowKeysPanel] = useState(false);
@@ -81,6 +100,19 @@ export default function GenerationStudio() {
     }
   };
 
+  const loadCredits = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/api/credits`, { headers });
+      if (!res.ok) return;
+      setCredits(await res.json());
+    } catch { /* non-fatal */ }
+  };
+
+  const surpriseMe = () => {
+    setPrompt(PROMPT_STARTERS[Math.floor(Math.random() * PROMPT_STARTERS.length)]);
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -90,7 +122,7 @@ export default function GenerationStudio() {
         setDuration(models[0].durations_sec[0] ?? 8);
         setRatio((models[0].ratios[0] ?? '16:9') as Ratio);
       }
-      await loadJobs();
+      await Promise.all([loadJobs(), loadCredits()]);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -138,7 +170,7 @@ export default function GenerationStudio() {
         throw new Error(body?.detail ?? `HTTP ${res.status}`);
       }
       setPrompt('');
-      await loadJobs();
+      await Promise.all([loadJobs(), loadCredits()]);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'submit failed');
     } finally {
@@ -157,13 +189,25 @@ export default function GenerationStudio() {
             Pick a model, write a prompt, ship a clip. Pay with platform credits or use your own API key.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowKeysPanel(true)}
-          className="flex items-center gap-2 rounded-xl border border-glass-border bg-glass-white hover:bg-glass-white-hover px-4 py-2 text-sm font-medium text-dark-text transition"
-        >
-          <Key className="h-4 w-4" /> Manage keys
-        </button>
+        <div className="flex items-center gap-3">
+          {credits && (
+            <div
+              className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/[0.08] px-3 py-2 text-sm"
+              title={`Plan: ${credits.plan} · Source: ${credits.source}`}
+            >
+              <Coins className="h-4 w-4 text-emerald-300" />
+              <span className="font-bold text-emerald-200">${credits.balance_usd.toFixed(2)}</span>
+              <span className="text-emerald-300/70 text-xs">credits</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowKeysPanel(true)}
+            className="flex items-center gap-2 rounded-xl border border-glass-border bg-glass-white hover:bg-glass-white-hover px-4 py-2 text-sm font-medium text-dark-text transition"
+          >
+            <Key className="h-4 w-4" /> Manage keys
+          </button>
+        </div>
       </header>
 
       {showKeysPanel && (
@@ -310,7 +354,16 @@ export default function GenerationStudio() {
             </div>
           </div>
 
-          <label className="text-[11px] font-bold tracking-[0.16em] uppercase text-cyan-300 block mb-2">Prompt</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[11px] font-bold tracking-[0.16em] uppercase text-cyan-300">Prompt</label>
+            <button
+              type="button"
+              onClick={surpriseMe}
+              className="inline-flex items-center gap-1.5 rounded-md bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-2.5 py-1 text-[11px] font-semibold text-cyan-200 transition"
+            >
+              <Sparkles className="h-3 w-3" /> Surprise me
+            </button>
+          </div>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

@@ -257,6 +257,40 @@ def get_generation(job_id: str, user_id: CurrentUser) -> dict:
     return _serialize_job(doc)
 
 
+# ---------------------------------------------------------------------------
+# Credits — stub endpoint so FE can surface balance.
+# Real ledger + Stripe checkout land in Phase 12 Step 7.
+# ---------------------------------------------------------------------------
+
+_FREE_MONTHLY_CREDITS_USD = float(os.getenv("FREE_MONTHLY_CREDITS_USD", "5.00"))
+
+
+@router.get("/credits")
+def get_credits(user_id: CurrentUser) -> dict:
+    """
+    Returns the user's current credit state. Until Stripe+ledger are live, we
+    return a flat monthly free allowance so the FE has a balance to render.
+    BYOK generations bypass this entirely.
+    """
+    if mongodb_service.db is None:
+        mongodb_service.connect()
+    balances = mongodb_service.db["credit_balances"]
+    row = balances.find_one({"user_id": user_id})
+    if row:
+        return {
+            "balance_usd": float(row.get("balance_usd", 0.0)),
+            "lifetime_spent_usd": float(row.get("lifetime_spent_usd", 0.0)),
+            "plan": row.get("plan", "free"),
+            "source": "ledger",
+        }
+    return {
+        "balance_usd": _FREE_MONTHLY_CREDITS_USD,
+        "lifetime_spent_usd": 0.0,
+        "plan": "free",
+        "source": "free_tier_default",
+    }
+
+
 @router.post("/generate/{job_id}/cancel")
 def cancel_generation(job_id: str, user_id: CurrentUser) -> dict:
     doc = _jobs_col().find_one({"job_id": job_id, "user_id": user_id})
